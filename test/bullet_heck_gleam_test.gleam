@@ -1,12 +1,67 @@
+import dungeon
+import gleam/dict
+import gleam/iterator.{repeatedly, take}
+import gleam/list
 import gleeunit
 import gleeunit/should
+import room
 
 pub fn main() {
   gleeunit.main()
 }
 
-// gleeunit test functions end in `_test`
-pub fn hello_world_test() {
-  1
-  |> should.equal(1)
+pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
+  let rooms =
+    d.rooms
+    |> dict.to_list()
+
+  use #(#(column, row), room) <- list.each(rooms)
+
+  let test_direction = fn(dir: room.Direction) {
+    case room.is_navigable(room, dir) {
+      // Confirm the other room can navigate to this room
+      True -> {
+        let next_room_coords = dungeon.next_room_indices(column, row, dir)
+        let next_room = dict.get(d.rooms, next_room_coords)
+        should.be_ok(next_room)
+        let assert Ok(next_room) = next_room
+        should.be_true(room.is_navigable(next_room, room.inverse_direction(dir)))
+        Nil
+      }
+      // Confirm the other room can't navigate to this room or is empty
+      False -> {
+        let next_room_coords = dungeon.next_room_indices(column, row, dir)
+        let next_room = dict.get(d.rooms, next_room_coords)
+
+        case next_room {
+          Error(_) -> Nil
+          Ok(next_room) -> {
+            should.be_false(room.is_navigable(
+              next_room,
+              room.inverse_direction(dir),
+            ))
+          }
+        }
+      }
+    }
+  }
+
+  test_direction(room.Left)
+  test_direction(room.Right)
+  test_direction(room.Top)
+  test_direction(room.Bottom)
+  test_direction(room.TopLeft)
+  test_direction(room.TopRight)
+  test_direction(room.BottomLeft)
+  test_direction(room.BottomRight)
+}
+
+pub fn validate_generation_test() {
+  {
+    use <- repeatedly
+
+    dungeon.generate_dungeon()
+    |> validate_room_is_traversable
+  }
+  |> take(30)
 }

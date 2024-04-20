@@ -1,10 +1,8 @@
 import gleam/bool
+import gleam/dict.{type Dict}
 import gleam/int
 import gleam/iterator
-import gleam/list
-import gleam/option
 import gleam/result
-import glearray.{type Array}
 import p5js_gleam.{type P5}
 import prng/random
 import room
@@ -28,7 +26,7 @@ pub fn total_size() -> Float {
 }
 
 type Rooms =
-  Array(Array(option.Option(room.Room)))
+  Dict(#(Int, Int), room.Room)
 
 /// Represents the dungeon and all its hazards
 pub type Dungeon {
@@ -39,10 +37,7 @@ pub type Dungeon {
 pub fn generate_dungeon() -> Dungeon {
   let center = center()
   let rooms =
-    glearray.from_list(list.repeat(
-      glearray.from_list(list.repeat(option.None, dungeon_size)),
-      dungeon_size,
-    ))
+    dict.new()
     |> generate_rooms(center, center, 0, room.Left)
     |> break_walls
     |> compute_corner_walls
@@ -66,7 +61,7 @@ fn generate_rooms(
     0 -> r
     _ -> room.set_navigable(r, previous_direction, True)
   }
-  let assert Ok(rooms) = set_room(rooms, option.Some(r), column, row)
+  let rooms = dict.insert(rooms, #(column, row), r)
 
   // Exit if we've recursed too far
   use <- bool.guard(recursion_depth > max_depth, rooms)
@@ -77,35 +72,31 @@ fn generate_rooms(
       direction == previous_direction && recursion_depth != 0,
       rooms,
     )
+
     let #(next_column, next_row) = next_room_indices(column, row, direction)
     // Do not try to go out of bounds
     use <- bool.guard(out_of_bounds(next_column, next_row), rooms)
     // Do not go some place that already has a room
-    let assert Ok(col) = glearray.get(rooms, next_column)
-    let assert Ok(next_room) = glearray.get(col, next_row)
-    use <- bool.guard(option.is_some(next_room), rooms)
+    use <- bool.guard(dict.has_key(rooms, #(next_column, next_row)), rooms)
     // Decide if we should advance
     let room_roll: Float =
       random.float(0.0, 1.0)
       |> random.random_sample
-    case room_roll <. room_rate {
-      True -> {
-        // Update current room to remove wall to next room
-        let assert Ok(col) = glearray.get(rooms, column)
-        let assert Ok(option.Some(room)) = glearray.get(col, row)
-        let room = room.set_navigable(room, direction, True)
-        let assert Ok(rooms) = set_room(rooms, option.Some(room), column, row)
-        // Advance to next room and recur
-        generate_rooms(
-          rooms,
-          next_column,
-          next_row,
-          recursion_depth + 1,
-          room.inverse_direction(direction),
-        )
-      }
-      False -> rooms
-    }
+
+    use <- bool.guard(room_roll >. room_rate, rooms)
+
+    // Update current room to remove wall to next room
+    let assert Ok(r) = dict.get(rooms, #(column, row))
+    let r = room.set_navigable(r, direction, True)
+    let rooms = dict.insert(rooms, #(column, row), r)
+    // Advance to next room and recur
+    generate_rooms(
+      rooms,
+      next_column,
+      next_row,
+      recursion_depth + 1,
+      room.inverse_direction(direction),
+    )
   }
 
   rooms
@@ -115,8 +106,8 @@ fn generate_rooms(
   |> advance_direction(room.Bottom)
 }
 
-// Gets the indices of the room that would be in the given direction from the given indices
-fn next_room_indices(
+/// Gets the indices of the room that would be in the given direction from the given indices
+pub fn next_room_indices(
   column: Int,
   row: Int,
   direction: room.Direction,
@@ -140,144 +131,89 @@ fn out_of_bounds(column: Int, row: Int) -> Bool {
 
 // Randomly break walls to make dungeon feel less caverny
 fn break_walls(rooms: Rooms) -> Rooms {
-  use rooms, r, column, row <- fold_rooms(rooms, rooms)
+  use rooms, #(column, row), _ <- dict.fold(rooms, rooms)
 
-  // Ignore missing rooms
-  let new_rooms = {
-    use r <- option.then(r)
+  let break_in_direction = fn(rooms: Rooms, dir: room.Direction) -> Rooms {
+    // Check if there is a room to the right
+    let #(next_column, next_row) = next_room_indices(column, row, dir)
+    use <- bool.guard(out_of_bounds(next_column, next_row), rooms)
 
-    let break_in_direction = fn(rooms: Rooms, dir: room.Direction) {
-      // Check if there is a room to the right
-      let #(next_column, next_row) = next_room_indices(column, row, dir)
-      use <- bool.guard(
-        out_of_bounds(next_column, next_row),
-        option.Some(rooms),
-      )
-      let assert Ok(col) = glearray.get(rooms, next_column)
-      let assert Ok(next_room) = glearray.get(col, next_row)
-      use next_room <- option.map(next_room)
+    let next_room = dict.get(rooms, #(next_column, next_row))
+    case next_room {
+      Error(_) -> rooms
+      Ok(next_room) -> {
+        // Decide if we should break wall
+        let break_roll: Float =
+          random.float(0.0, 1.0)
+          |> random.random_sample
+        use <- bool.guard(break_roll >. break_rate, rooms)
 
-      // Decide if we should break wall
-      let break_roll: Float =
-        random.float(0.0, 1.0)
-        |> random.random_sample
-      case break_roll <. break_rate {
-        True -> {
-          // Update current room to remove wall to next room
-          let assert Ok(col) = glearray.get(rooms, column)
-          let assert Ok(option.Some(r)) = glearray.get(col, row)
-          let room = room.set_navigable(r, dir, True)
-          let assert Ok(rooms) = set_room(rooms, option.Some(room), column, row)
-          // Update next room to remove wall to current room
-          let next_room =
-            room.set_navigable(next_room, room.inverse_direction(dir), True)
-          let assert Ok(rooms) =
-            set_room(rooms, option.Some(next_room), next_column, next_row)
-          rooms
-        }
-        False -> rooms
+        // Update current room to remove wall to next room
+        let assert Ok(room) = dict.get(rooms, #(column, row))
+        let room = room.set_navigable(room, dir, True)
+        let rooms = dict.insert(rooms, #(column, row), room)
+
+        // Update next room to remove wall to current room
+        let next_room =
+          room.set_navigable(next_room, room.inverse_direction(dir), True)
+        dict.insert(rooms, #(next_column, next_row), next_room)
       }
     }
-
-    rooms
-    |> break_in_direction(room.Right)
-    |> option.then(break_in_direction(_, room.Bottom))
   }
 
-  option.unwrap(new_rooms, rooms)
+  rooms
+  |> break_in_direction(room.Right)
+  |> break_in_direction(room.Bottom)
 }
 
 // Update corners based on cardinal directions
 fn compute_corner_walls(rooms: Rooms) -> Rooms {
-  use rooms, r, column, row <- fold_rooms(rooms, rooms)
+  use rooms, #(column, row), r <- dict.fold(rooms, rooms)
 
-  // Ignore missing rooms
-  let new_rooms = {
-    use r <- option.map(r)
+  let open_corner = fn(
+    room: room.Room,
+    dir1: room.Direction,
+    dir2: room.Direction,
+    out_dir: room.Direction,
+  ) -> room.Room {
+    let can_go_in_dir =
+      room.is_navigable(room, dir1) && room.is_navigable(room, dir2)
+    use <- bool.guard(!can_go_in_dir, room)
 
-    let open_corner = fn(
-      room: room.Room,
-      dir1: room.Direction,
-      dir2: room.Direction,
-      out_dir: room.Direction,
-    ) -> room.Room {
-      let can_go_in_dir =
-        room.is_navigable(room, dir1) && room.is_navigable(room, dir2)
-      use <- bool.guard(!can_go_in_dir, room)
-
-      // These asserts are ok because if we can naviage then the room must exist already
-      let #(next_column, next_row) = next_room_indices(column, row, out_dir)
-      use <- bool.guard(out_of_bounds(next_column, next_row), room)
-      let assert Ok(col) = glearray.get(rooms, next_column)
-      let assert Ok(next_room) = glearray.get(col, next_row)
-      case next_room {
-        option.None -> room
-        option.Some(next_room) -> {
-          let can_go_in_dir =
-            room.is_navigable(next_room, room.inverse_direction(dir1))
-            && room.is_navigable(next_room, room.inverse_direction(dir2))
-          case can_go_in_dir {
-            True -> room.set_navigable(room, out_dir, True)
-            _ -> room
-          }
+    // These asserts are ok because if we can naviage then the room must exist already
+    let #(next_column, next_row) = next_room_indices(column, row, out_dir)
+    use <- bool.guard(out_of_bounds(next_column, next_row), room)
+    let next_room = dict.get(rooms, #(next_column, next_row))
+    case next_room {
+      Error(_) -> room
+      Ok(next_room) -> {
+        let can_go_in_dir =
+          room.is_navigable(next_room, room.inverse_direction(dir1))
+          && room.is_navigable(next_room, room.inverse_direction(dir2))
+        case can_go_in_dir {
+          True -> room.set_navigable(room, out_dir, True)
+          _ -> room
         }
       }
     }
-
-    let r =
-      r
-      |> open_corner(room.Right, room.Bottom, room.BottomRight)
-      |> open_corner(room.Left, room.Bottom, room.BottomLeft)
-      |> open_corner(room.Right, room.Top, room.TopRight)
-      |> open_corner(room.Left, room.Top, room.TopLeft)
-
-    let assert Ok(rooms) = set_room(rooms, option.Some(r), column, row)
-    rooms
   }
 
-  option.unwrap(new_rooms, rooms)
+  let r =
+    r
+    |> open_corner(room.Right, room.Bottom, room.BottomRight)
+    |> open_corner(room.Left, room.Bottom, room.BottomLeft)
+    |> open_corner(room.Right, room.Top, room.TopRight)
+    |> open_corner(room.Left, room.Top, room.TopLeft)
+
+  dict.insert(rooms, #(column, row), r)
 }
 
 /// Renders the dungeon to the screen.
 pub fn draw_dungeon(p: P5, dungeon: Dungeon) {
-  use _, r, col, row <- fold_rooms(dungeon.rooms, p)
-  case r {
-    option.Some(r) -> room.draw_room(p, r, col, row, room_size)
-    option.None -> p
-  }
-}
+  // rendering with shadows depends on order so we are using ranges
+  use col <- iterator.each(iterator.range(0, dungeon_size))
+  use row <- iterator.each(iterator.range(0, dungeon_size))
+  use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
 
-// creates an iterator to traverse the dungeon rooms
-fn fold_rooms(
-  rooms: Rooms,
-  initial: b,
-  f: fn(b, option.Option(room.Room), Int, Int) -> b,
-) -> b {
-  let col_iter =
-    rooms
-    |> glearray.iterate
-    |> iterator.index
-  use col_acc, #(column, column_number) <- iterator.fold(col_iter, initial)
-
-  let row_iter =
-    column
-    |> glearray.iterate
-    |> iterator.index
-
-  use row_acc, #(room, row_number) <- iterator.fold(row_iter, col_acc)
-  f(row_acc, room, column_number, row_number)
-}
-
-// updates the room at the given indices
-fn set_room(
-  rooms: Rooms,
-  room: option.Option(room.Room),
-  column: Int,
-  row: Int,
-) -> Result(Rooms, Nil) {
-  let col = glearray.get(rooms, column)
-  use col <- result.try(col)
-  let new_col = glearray.copy_set(col, row, room)
-  use new_col <- result.try(new_col)
-  glearray.copy_set(rooms, column, new_col)
+  room.draw_room(p, r, col, row, room_size)
 }
