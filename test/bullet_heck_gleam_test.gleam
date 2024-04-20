@@ -17,7 +17,9 @@ pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
 
   use #(#(column, row), room) <- list.each(rooms)
 
-  let test_direction = fn(dir: room.Direction) {
+  // Check direction is symmetrical
+  // Returns if the direction is navigable
+  let test_direction = fn(dir: room.Direction) -> Bool {
     case room.is_navigable(room, dir) {
       // Confirm the other room can navigate to this room
       True -> {
@@ -26,7 +28,7 @@ pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
         should.be_ok(next_room)
         let assert Ok(next_room) = next_room
         should.be_true(room.is_navigable(next_room, room.inverse_direction(dir)))
-        Nil
+        True
       }
       // Confirm the other room can't navigate to this room or is empty
       False -> {
@@ -42,18 +44,27 @@ pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
             ))
           }
         }
+        False
       }
     }
   }
 
-  test_direction(room.Left)
-  test_direction(room.Right)
-  test_direction(room.Top)
-  test_direction(room.Bottom)
-  test_direction(room.TopLeft)
-  test_direction(room.TopRight)
-  test_direction(room.BottomLeft)
-  test_direction(room.BottomRight)
+  // Check each room has at least 1 other navigable room
+  should.be_true(
+    list.any(
+      [
+        test_direction(room.Left),
+        test_direction(room.Right),
+        test_direction(room.Top),
+        test_direction(room.Bottom),
+        test_direction(room.TopLeft),
+        test_direction(room.TopRight),
+        test_direction(room.BottomLeft),
+        test_direction(room.BottomRight),
+      ],
+      fn(x) { x },
+    ),
+  )
 }
 
 pub fn validate_generation_test() {
