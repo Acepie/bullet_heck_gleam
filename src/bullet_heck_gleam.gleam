@@ -20,8 +20,7 @@ fn setup(p: P5) -> WorldState {
 }
 
 fn draw(p: P5, state: WorldState) {
-  p5.background(p, "#ffffff")
-  p5.fill(p, "#000000")
+  p5.background(p, "#000000")
   dungeon.draw_dungeon(p, state.dungeon)
 }
 

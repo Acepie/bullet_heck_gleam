@@ -58,16 +58,20 @@ pub fn initialize_unbounded_room() -> Room {
 }
 
 /// Creates a room with the wall to a given direction set to the passed value.
-pub fn set_wall(room: Room, direction: Direction, wall_value: Bool) -> Room {
+pub fn set_navigable(
+  room: Room,
+  direction: Direction,
+  navigable_value: Bool,
+) -> Room {
   case direction {
-    Left -> Room(..room, left: wall_value)
-    Right -> Room(..room, right: wall_value)
-    Top -> Room(..room, top: wall_value)
-    Bottom -> Room(..room, bottom: wall_value)
-    TopLeft -> Room(..room, top_left: wall_value)
-    TopRight -> Room(..room, top_right: wall_value)
-    BottomLeft -> Room(..room, bottom_left: wall_value)
-    BottomRight -> Room(..room, bottom_right: wall_value)
+    Left -> Room(..room, left: navigable_value)
+    Right -> Room(..room, right: navigable_value)
+    Top -> Room(..room, top: navigable_value)
+    Bottom -> Room(..room, bottom: navigable_value)
+    TopLeft -> Room(..room, top_left: navigable_value)
+    TopRight -> Room(..room, top_right: navigable_value)
+    BottomLeft -> Room(..room, bottom_left: navigable_value)
+    BottomRight -> Room(..room, bottom_right: navigable_value)
   }
 }
 
@@ -85,6 +89,7 @@ pub fn draw_room(
   let right = int.to_float({ room_column + 1 } * room_size)
 
   // room background
+  p5.stroke_weight(p, 1)
   p5.fill(p, room_color)
   p5.stroke(p, room_color)
   p5.rect(p, left, top, int.to_float(room_size), int.to_float(room_size))
