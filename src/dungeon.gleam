@@ -30,6 +30,7 @@ pub fn total_size() -> Float {
 type Rooms =
   Array(Array(option.Option(room.Room)))
 
+/// Represents the dungeon and all its hazards
 pub type Dungeon {
   Dungeon(rooms: Rooms)
 }
