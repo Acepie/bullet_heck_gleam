@@ -75,6 +75,20 @@ pub fn set_navigable(
   }
 }
 
+/// Checks if a direction is navigable from the given room.
+pub fn is_navigable(room: Room, direction: Direction) -> Bool {
+  case direction {
+    Left -> room.left
+    Right -> room.right
+    Top -> room.top
+    Bottom -> room.bottom
+    TopLeft -> room.top_left
+    TopRight -> room.top_right
+    BottomLeft -> room.bottom_left
+    BottomRight -> room.bottom_right
+  }
+}
+
 /// Draws a room onto the screen at the given row and column.
 pub fn draw_room(
   p: P5,

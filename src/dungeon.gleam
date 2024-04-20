@@ -44,6 +44,7 @@ pub fn generate_dungeon() -> Dungeon {
     ))
     |> generate_rooms(center, center, 0, room.Left)
     |> break_walls
+    |> compute_corner_walls
   Dungeon(rooms)
 }
 
@@ -58,23 +59,21 @@ fn generate_rooms(
   recursion_depth: Int,
   previous_direction: room.Direction,
 ) -> Rooms {
-  // Exit if we've recursed too far
-  use <- bool.guard(recursion_depth > max_depth, rooms)
-
+  // Initialize the current room
   let r = room.initialize_unbounded_room()
   let r = case recursion_depth {
     0 -> r
     _ -> room.set_navigable(r, previous_direction, True)
   }
-
-  // Initialize the current room
   let assert Ok(rooms) = set_room(rooms, option.Some(r), column, row)
+
+  // Exit if we've recursed too far
+  use <- bool.guard(recursion_depth > max_depth, rooms)
 
   let advance_direction = fn(rooms: Rooms, direction: room.Direction) -> Rooms {
     // Do not try to go back where you came from
     use <- bool.guard(
-      direction == room.inverse_direction(previous_direction)
-        && recursion_depth != 0,
+      direction == previous_direction && recursion_depth != 0,
       rooms,
     )
     let #(next_column, next_row) = next_room_indices(column, row, direction)
@@ -164,6 +163,8 @@ fn break_walls(rooms: Rooms) -> Rooms {
       case break_roll <. break_rate {
         True -> {
           // Update current room to remove wall to next room
+          let assert Ok(col) = glearray.get(rooms, column)
+          let assert Ok(option.Some(r)) = glearray.get(col, row)
           let room = room.set_navigable(r, dir, True)
           let assert Ok(rooms) = set_room(rooms, option.Some(room), column, row)
           // Update next room to remove wall to current room
@@ -180,6 +181,57 @@ fn break_walls(rooms: Rooms) -> Rooms {
     rooms
     |> break_in_direction(room.Right)
     |> option.then(break_in_direction(_, room.Bottom))
+  }
+
+  option.unwrap(new_rooms, rooms)
+}
+
+// Update corners based on cardinal directions
+fn compute_corner_walls(rooms: Rooms) -> Rooms {
+  use rooms, r, column, row <- fold_rooms(rooms, rooms)
+
+  // Ignore missing rooms
+  let new_rooms = {
+    use r <- option.map(r)
+
+    let open_corner = fn(
+      room: room.Room,
+      dir1: room.Direction,
+      dir2: room.Direction,
+      out_dir: room.Direction,
+    ) -> room.Room {
+      let can_go_in_dir =
+        room.is_navigable(room, dir1) && room.is_navigable(room, dir2)
+      use <- bool.guard(!can_go_in_dir, room)
+
+      // These asserts are ok because if we can naviage then the room must exist already
+      let #(next_column, next_row) = next_room_indices(column, row, out_dir)
+      use <- bool.guard(out_of_bounds(next_column, next_row), room)
+      let assert Ok(col) = glearray.get(rooms, next_column)
+      let assert Ok(next_room) = glearray.get(col, next_row)
+      case next_room {
+        option.None -> room
+        option.Some(next_room) -> {
+          let can_go_in_dir =
+            room.is_navigable(next_room, room.inverse_direction(dir1))
+            && room.is_navigable(next_room, room.inverse_direction(dir2))
+          case can_go_in_dir {
+            True -> room.set_navigable(room, out_dir, True)
+            _ -> room
+          }
+        }
+      }
+    }
+
+    let r =
+      r
+      |> open_corner(room.Right, room.Bottom, room.BottomRight)
+      |> open_corner(room.Left, room.Bottom, room.BottomLeft)
+      |> open_corner(room.Right, room.Top, room.TopRight)
+      |> open_corner(room.Left, room.Top, room.TopLeft)
+
+    let assert Ok(rooms) = set_room(rooms, option.Some(r), column, row)
+    rooms
   }
 
   option.unwrap(new_rooms, rooms)
