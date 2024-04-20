@@ -10,7 +10,36 @@ const wall_shadow_color = "#3c3c3c"
 
 const wall_shadow_color2 = "#646464"
 
+/// A cardinal direction or combination direction.
+pub type Direction {
+  Left
+  Right
+  Top
+  Bottom
+  TopLeft
+  TopRight
+  BottomLeft
+  BottomRight
+}
+
+/// Finds the opposite direction of the one passed in.
+pub fn inverse_direction(direction: Direction) -> Direction {
+  case direction {
+    Left -> Right
+    Right -> Left
+    Top -> Bottom
+    Bottom -> Top
+    TopLeft -> BottomRight
+    TopRight -> BottomLeft
+    BottomLeft -> TopRight
+    BottomRight -> TopLeft
+  }
+}
+
+/// Represents a room and its walls.
 pub type Room {
+  /// Represents a room and its walls.
+  /// For each direction True means that direction is navigable (no wall)
   Room(
     left: Bool,
     right: Bool,
@@ -23,6 +52,26 @@ pub type Room {
   )
 }
 
+/// Creates a room with only walls.
+pub fn initialize_unbounded_room() -> Room {
+  Room(False, False, False, False, False, False, False, False)
+}
+
+/// Creates a room with the wall to a given direction set to the passed value.
+pub fn set_wall(room: Room, direction: Direction, wall_value: Bool) -> Room {
+  case direction {
+    Left -> Room(..room, left: wall_value)
+    Right -> Room(..room, right: wall_value)
+    Top -> Room(..room, top: wall_value)
+    Bottom -> Room(..room, bottom: wall_value)
+    TopLeft -> Room(..room, top_left: wall_value)
+    TopRight -> Room(..room, top_right: wall_value)
+    BottomLeft -> Room(..room, bottom_left: wall_value)
+    BottomRight -> Room(..room, bottom_right: wall_value)
+  }
+}
+
+/// Draws a room onto the screen at the given row and column.
 pub fn draw_room(
   p: P5,
   room: Room,
@@ -53,22 +102,22 @@ pub fn draw_room(
   p5.stroke_weight(p, 2)
 
   case room.left {
-    True -> p5.line(p, left, top, left, bot)
-    False -> p
+    True -> p
+    False -> p5.line(p, left, top, left, bot)
   }
 
   case room.right {
-    True -> p5.line(p, right, top, right, bot)
-    False -> p
+    True -> p
+    False -> p5.line(p, right, top, right, bot)
   }
 
   case room.top {
-    True -> p5.line(p, left, top, right, top)
-    False -> p
+    True -> p
+    False -> p5.line(p, left, top, right, top)
   }
 
   case room.bottom {
-    True -> p5.line(p, left, bot, right, bot)
-    False -> p
+    True -> p
+    False -> p5.line(p, left, bot, right, bot)
   }
 }

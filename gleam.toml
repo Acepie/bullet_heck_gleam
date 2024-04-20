@@ -16,6 +16,8 @@ target = "javascript"
 [dependencies]
 gleam_stdlib = ">= 0.34.0 and < 2.0.0"
 p5js_gleam = ">= 1.0.1 and < 2.0.0"
+glearray = ">= 0.2.1 and < 1.0.0"
+prng = ">= 3.0.2 and < 4.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
