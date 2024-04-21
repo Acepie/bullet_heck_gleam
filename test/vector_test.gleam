@@ -8,14 +8,10 @@ import vector.{type Vector, Vector}
 
 const precision = 0.000001
 
-fn approximate_float_equal(f1: Float, f2: Float, precision: Float) -> Bool {
-  float.absolute_value(f1 -. f2) <. precision
-}
-
 fn approximate_vector_equal(v1: Vector, v2: Vector) {
-  let x = approximate_float_equal(v1.x, v2.x, precision)
-  let y = approximate_float_equal(v1.y, v2.y, precision)
-  let z = approximate_float_equal(v1.z, v2.z, precision)
+  let x = float.loosely_equals(v1.x, v2.x, precision)
+  let y = float.loosely_equals(v1.y, v2.y, precision)
+  let z = float.loosely_equals(v1.z, v2.z, precision)
 
   case x, y, z {
     True, True, True -> Nil
