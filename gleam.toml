@@ -14,10 +14,11 @@ target = "javascript"
 # https://gleam.run/writing-gleam/gleam-toml/.
 
 [dependencies]
-gleam_stdlib = ">= 0.34.0 and < 2.0.0"
+gleam_stdlib = ">= 0.36.0 and < 2.0.0"
 p5js_gleam = ">= 1.0.1 and < 2.0.0"
 prng = ">= 3.0.2 and < 4.0.0"
+gleam_community_maths = ">= 1.1.0 and < 2.0.0"
 
 [dev-dependencies]
-gleeunit = ">= 1.0.0 and < 2.0.0"
 esgleam = ">= 0.6.0 and < 1.0.0"
+startest = ">= 0.2.0 and < 1.0.0"
