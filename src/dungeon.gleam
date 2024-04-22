@@ -223,13 +223,13 @@ fn compute_corner_walls(rooms: Rooms) -> Rooms {
 }
 
 /// Renders the dungeon to the screen.
-pub fn draw_dungeon(p: P5, dungeon: Dungeon) {
+pub fn draw(p: P5, dungeon: Dungeon) {
   // rendering with shadows depends on order so we are using ranges
   use col <- iterator.each(iterator.range(0, dungeon_size))
   use row <- iterator.each(iterator.range(0, dungeon_size))
   use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
 
-  room.draw_room(p, r, col, row, room_size)
+  room.draw(p, r, col, row, room_size)
 }
 
 /// Get the coordinate that the given point is in.

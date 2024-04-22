@@ -90,13 +90,7 @@ pub fn is_navigable(room: Room, direction: Direction) -> Bool {
 }
 
 /// Draws a room onto the screen at the given row and column.
-pub fn draw_room(
-  p: P5,
-  room: Room,
-  room_column: Int,
-  room_row: Int,
-  room_size: Int,
-) {
+pub fn draw(p: P5, room: Room, room_column: Int, room_row: Int, room_size: Int) {
   let top = int.to_float(room_row * room_size)
   let bot = int.to_float({ room_row + 1 } * room_size)
   let left = int.to_float(room_column * room_size)

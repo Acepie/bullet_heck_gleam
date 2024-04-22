@@ -59,21 +59,119 @@ pub fn new_player(initial_position: Vector) -> Player {
 
 /// Advances the player forward assuming they can.
 pub fn move(player: Player) -> Player {
-  Player(
-    ..player,
-    position: vector.vector_add(player.position, player.velocity),
-  )
+  Player(..player, position: vector.add(player.position, player.velocity))
 }
 
 /// Accelerates the player's velocity.
 pub fn update_velocity(player: Player) -> Player {
   // Base acceleration
-  let vel = vector.vector_add(player.velocity, player.acceleration)
+  let vel = vector.add(player.velocity, player.acceleration)
   // Limit xy velocity
   let limited =
     vector.vector_2d(vel)
-    |> vector.vector_limit(max_speed)
+    |> vector.limit(max_speed)
   Player(..player, velocity: vector.Vector(limited.x, limited.y, vel.z))
+}
+
+/// Let's the player jump if they are on the ground.
+pub fn jump(player: Player) -> Player {
+  case player.position.z, player.velocity.z {
+    p, v if p == 0.0 && v <=. 0.0 ->
+      Player(
+        ..player,
+        velocity: vector.Vector(
+          player.velocity.x,
+          player.velocity.y,
+          jump_power,
+        ),
+      )
+    _, _ -> player
+  }
+}
+
+/// Accelerates the player in the x direction.
+pub fn accelerate_x(player: Player, forward: Bool) -> Player {
+  let acc = case forward {
+    True -> acceleration()
+    False -> -1.0 *. acceleration()
+  }
+  Player(
+    ..player,
+    acceleration: vector.Vector(
+      acc,
+      player.acceleration.y,
+      player.acceleration.z,
+    ),
+  )
+}
+
+/// Accelerates the player in the y direction.
+pub fn accelerate_y(player: Player, forward: Bool) -> Player {
+  let acc = case forward {
+    True -> acceleration()
+    False -> -1.0 *. acceleration()
+  }
+  Player(
+    ..player,
+    acceleration: vector.Vector(
+      player.acceleration.x,
+      acc,
+      player.acceleration.z,
+    ),
+  )
+}
+
+/// Stops the player in the x direction.
+pub fn stop_x(player: Player) -> Player {
+  Player(
+    ..player,
+    velocity: vector.Vector(0.0, player.velocity.y, player.velocity.z),
+    acceleration: vector.Vector(
+      0.0,
+      player.acceleration.y,
+      player.acceleration.z,
+    ),
+  )
+}
+
+/// Stops the player in the y direction.
+pub fn stop_y(player: Player) -> Player {
+  Player(
+    ..player,
+    velocity: vector.Vector(player.velocity.x, 0.0, player.velocity.z),
+    acceleration: vector.Vector(
+      player.acceleration.x,
+      0.0,
+      player.acceleration.z,
+    ),
+  )
+}
+
+const player_gravity_strength = 0.02
+
+// Applies gravity to the velocityy and resets z position to floor when appropriate.
+pub fn apply_gravity(player: Player) -> Player {
+  let position = case player.position.z {
+    z if z <. 0.0 -> vector.Vector(player.position.x, player.position.y, 0.0)
+    _ -> player.position
+  }
+  Player(
+    ..player,
+    position: position,
+    velocity: vector.Vector(
+      player.velocity.x,
+      player.velocity.y,
+      player.velocity.z -. player_gravity_strength,
+    ),
+  )
+}
+
+/// Make player look towards a point.
+pub fn look_toward(player: Player, point: Vector) -> Player {
+  Player(
+    ..player,
+    firing_direction: vector.vector_2d(vector.subtract(point, player.position)),
+  )
 }
 
 /// Is the player currently dead.
@@ -95,7 +193,7 @@ const player_fill_color = "#0000ff"
 const player_stroke_color = "#000000"
 
 /// Renders the player to the screen.
-pub fn draw_player(p: P5, player: Player) {
+pub fn draw(p: P5, player: Player) {
   case is_player_dead(player), is_player_invulnerable(player) {
     True, _ -> p5.fill(p, dead_fill_color)
     _, True -> p5.fill(p, invulnerable_fill_color)
