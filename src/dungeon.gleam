@@ -1,11 +1,13 @@
 import gleam/bool
 import gleam/dict.{type Dict}
+import gleam/float
 import gleam/int
 import gleam/iterator
 import gleam/result
 import p5js_gleam.{type P5}
 import prng/random
 import room
+import vector
 
 const dungeon_size = 7
 
@@ -19,16 +21,19 @@ fn center() -> Int {
   dungeon_size / 2
 }
 
-const room_size = 100
+pub const room_size = 100
 
 pub fn total_size() -> Float {
   int.to_float(dungeon_size * room_size)
 }
 
-type Rooms =
-  Dict(#(Int, Int), room.Room)
+type Coordinate =
+  #(Int, Int)
 
-/// Represents the dungeon and all its hazards
+type Rooms =
+  Dict(Coordinate, room.Room)
+
+/// Represents the dungeon and all its hazards.
 pub type Dungeon {
   Dungeon(rooms: Rooms)
 }
@@ -75,7 +80,7 @@ fn generate_rooms(
 
     let #(next_column, next_row) = next_room_indices(column, row, direction)
     // Do not try to go out of bounds
-    use <- bool.guard(out_of_bounds(next_column, next_row), rooms)
+    use <- bool.guard(coordinate_out_of_bounds(next_column, next_row), rooms)
     // Do not go some place that already has a room
     use <- bool.guard(dict.has_key(rooms, #(next_column, next_row)), rooms)
     // Decide if we should advance
@@ -106,12 +111,12 @@ fn generate_rooms(
   |> advance_direction(room.Bottom)
 }
 
-/// Gets the indices of the room that would be in the given direction from the given indices
+/// Gets the indices of the room that would be in the given direction from the given indices.
 pub fn next_room_indices(
   column: Int,
   row: Int,
   direction: room.Direction,
-) -> #(Int, Int) {
+) -> Coordinate {
   case direction {
     room.Left -> #(column - 1, row)
     room.Right -> #(column + 1, row)
@@ -124,19 +129,28 @@ pub fn next_room_indices(
   }
 }
 
-// Checks if the given indices would be out of bounds
-fn out_of_bounds(column: Int, row: Int) -> Bool {
+// Checks if the given coordinates would be out of bounds.
+fn coordinate_out_of_bounds(column: Int, row: Int) -> Bool {
   column < 0 || column >= dungeon_size || row < 0 || row >= dungeon_size
 }
 
-// Randomly break walls to make dungeon feel less caverny
+// Checks if the given position would be out of bounds.
+fn point_out_of_bounds(position: vector.Vector) -> Bool {
+  let size = total_size()
+  position.x <. 0.0
+  || position.x >=. size
+  || position.y <. 0.0
+  || position.y >=. size
+}
+
+// Randomly break walls to make dungeon feel less caverny.
 fn break_walls(rooms: Rooms) -> Rooms {
   use rooms, #(column, row), _ <- dict.fold(rooms, rooms)
 
   let break_in_direction = fn(rooms: Rooms, dir: room.Direction) -> Rooms {
     // Check if there is a room to the right
     let #(next_column, next_row) = next_room_indices(column, row, dir)
-    use <- bool.guard(out_of_bounds(next_column, next_row), rooms)
+    use <- bool.guard(coordinate_out_of_bounds(next_column, next_row), rooms)
 
     let next_room = dict.get(rooms, #(next_column, next_row))
     case next_room {
@@ -166,7 +180,7 @@ fn break_walls(rooms: Rooms) -> Rooms {
   |> break_in_direction(room.Bottom)
 }
 
-// Update corners based on cardinal directions
+// Update corners based on cardinal directions.
 fn compute_corner_walls(rooms: Rooms) -> Rooms {
   use rooms, #(column, row), r <- dict.fold(rooms, rooms)
 
@@ -182,7 +196,7 @@ fn compute_corner_walls(rooms: Rooms) -> Rooms {
 
     // These asserts are ok because if we can naviage then the room must exist already
     let #(next_column, next_row) = next_room_indices(column, row, out_dir)
-    use <- bool.guard(out_of_bounds(next_column, next_row), room)
+    use <- bool.guard(coordinate_out_of_bounds(next_column, next_row), room)
     let next_room = dict.get(rooms, #(next_column, next_row))
     case next_room {
       Error(_) -> room
@@ -216,4 +230,69 @@ pub fn draw_dungeon(p: P5, dungeon: Dungeon) {
   use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
 
   room.draw_room(p, r, col, row, room_size)
+}
+
+/// Get the coordinate that the given point is in.
+pub fn point_to_coordinate(point: vector.Vector) -> Coordinate {
+  let column = float.truncate(point.x /. int.to_float(room_size))
+  let row = float.truncate(point.y /. int.to_float(room_size))
+  #(column, row)
+}
+
+// Gets the direction one needs to go to move from one coordinate to another.
+// Returns an error if the coordinates are the same room.
+fn coordinate_direction(
+  from: Coordinate,
+  to: Coordinate,
+) -> Result(room.Direction, Nil) {
+  case from, to {
+    // ↓
+    #(fc, fr), #(tc, tr) if fc == tc && fr < tr -> Ok(room.Bottom)
+    // ↘
+    #(fc, fr), #(tc, tr) if fc < tc && fr < tr -> Ok(room.BottomRight)
+    // ↑
+    #(fc, fr), #(tc, tr) if fc == tc && fr > tr -> Ok(room.Top)
+    // ↖
+    #(fc, fr), #(tc, tr) if fc > tc && fr > tr -> Ok(room.TopLeft)
+    // →
+    #(fc, fr), #(tc, tr) if fc < tc && fr == tr -> Ok(room.Right)
+    // ↗
+    #(fc, fr), #(tc, tr) if fc < tc && fr > tr -> Ok(room.TopRight)
+    // ←
+    #(fc, fr), #(tc, tr) if fc > tc && fr == tr -> Ok(room.Left)
+    // ↙
+    #(fc, fr), #(tc, tr) if fc > tc && fr < tr -> Ok(room.BottomLeft)
+    _, _ -> Error(Nil)
+  }
+}
+
+/// Checks if it is possible to move from one position to another.
+pub fn can_move(
+  dungeon: Dungeon,
+  from: vector.Vector,
+  to: vector.Vector,
+) -> Bool {
+  // Can't move out of bounds
+  use <- bool.guard(point_out_of_bounds(to), False)
+
+  // Find the coordinates that correspond to the start and end points
+  let from_coordinate = point_to_coordinate(from)
+  let to_coordinate = point_to_coordinate(to)
+
+  // Check that the start and end are both rooms
+  let from_room = dict.get(dungeon.rooms, from_coordinate)
+  let to_room = dict.get(dungeon.rooms, to_coordinate)
+
+  case from_room, to_room {
+    Ok(from), Ok(_) -> {
+      // Check that there is no wall blocking the rooms
+      let dir = coordinate_direction(from_coordinate, to_coordinate)
+      case dir {
+        Ok(dir) -> room.is_navigable(from, dir)
+        // Same room 
+        Error(_) -> True
+      }
+    }
+    _, _ -> False
+  }
 }

@@ -1,10 +1,12 @@
 import dungeon
 import gleam/dict
+import gleam/int
 import gleam/iterator.{repeatedly, take}
 import gleam/list
 import room
 import startest.{describe, it}
 import startest/expect
+import vector
 
 pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
   let rooms =
@@ -66,7 +68,7 @@ pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
   )
 }
 
-pub fn validate_generation_tests() {
+pub fn dungeon_tests() {
   describe("dungeon", [
     it("generated dungeons should always be traversable", fn() {
       {
@@ -76,6 +78,66 @@ pub fn validate_generation_tests() {
         |> validate_room_is_traversable
       }
       |> take(30)
+
+      Nil
+    }),
+    it("can_move in a dungeon", fn() {
+      let rooms =
+        dict.new()
+        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+        |> dict.insert(
+          #(2, 1),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Bottom, True),
+        )
+        |> dict.insert(
+          #(2, 2),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Top, True),
+        )
+      let dungeon = dungeon.Dungeon(rooms: rooms)
+
+      // to out of bounds
+      expect.to_be_false(dungeon.can_move(
+        dungeon,
+        vector.Vector(0.0, 0.0, 0.0),
+        vector.Vector(10_000.0, 0.0, 0.0),
+      ))
+      // from and to not real rooms
+      expect.to_be_false(dungeon.can_move(
+        dungeon,
+        vector.Vector(0.0, 0.0, 0.0),
+        vector.Vector(0.0, 0.0, 0.0),
+      ))
+      // from and to blocked by wall
+      expect.to_be_false(dungeon.can_move(
+        dungeon,
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 1.5,
+          int.to_float(dungeon.room_size) *. 1.5,
+          0.0,
+        ),
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 1.5,
+          int.to_float(dungeon.room_size) *. 2.5,
+          0.0,
+        ),
+      ))
+      // from and to are navigable
+      expect.to_be_true(dungeon.can_move(
+        dungeon,
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 2.5,
+          int.to_float(dungeon.room_size) *. 1.5,
+          0.0,
+        ),
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 2.5,
+          int.to_float(dungeon.room_size) *. 2.5,
+          0.0,
+        ),
+      ))
 
       Nil
     }),

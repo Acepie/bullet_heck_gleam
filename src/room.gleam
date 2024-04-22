@@ -39,7 +39,7 @@ pub fn inverse_direction(direction: Direction) -> Direction {
 /// Represents a room and its walls.
 pub type Room {
   /// Represents a room and its walls.
-  /// For each direction, True means that direction is navigable (no wall)
+  /// For each direction, True means that direction is navigable (no wall).
   Room(
     left: Bool,
     right: Bool,
