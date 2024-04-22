@@ -43,6 +43,7 @@ pub type Player {
   )
 }
 
+/// Makes the starting player at the given position.
 pub fn new_player(initial_position: Vector) -> Player {
   Player(
     position: initial_position,
@@ -64,7 +65,7 @@ pub fn move(player: Player) -> Player {
   )
 }
 
-/// Accelerates the player's velocity
+/// Accelerates the player's velocity.
 pub fn update_velocity(player: Player) -> Player {
   // Base acceleration
   let vel = vector.vector_add(player.velocity, player.acceleration)
@@ -75,12 +76,12 @@ pub fn update_velocity(player: Player) -> Player {
   Player(..player, velocity: vector.Vector(limited.x, limited.y, vel.z))
 }
 
-/// Is the player currently dead
+/// Is the player currently dead.
 pub fn is_player_dead(player: Player) -> Bool {
   player.current_health <= 0
 }
 
-/// Is the player currently invulnerable
+/// Is the player currently invulnerable.
 pub fn is_player_invulnerable(player: Player) -> Bool {
   player.last_hit_time + invulnerability_time <= utils.now_in_milliseconds()
 }
@@ -93,6 +94,7 @@ const player_fill_color = "#0000ff"
 
 const player_stroke_color = "#000000"
 
+/// Renders the player to the screen.
 pub fn draw_player(p: P5, player: Player) {
   case is_player_dead(player), is_player_invulnerable(player) {
     True, _ -> p5.fill(p, dead_fill_color)
