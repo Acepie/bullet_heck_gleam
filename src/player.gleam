@@ -4,7 +4,7 @@ import p5js_gleam/bindings as p5
 import utils
 import vector.{type Vector}
 
-const player_size = 10.0
+pub const player_size = 10.0
 
 const max_speed = 4.0
 
@@ -30,8 +30,6 @@ pub type Player {
     velocity: Vector,
     /// The character's current acceleration.
     acceleration: Vector,
-    /// The direction the player is firing relative to the player's position
-    firing_direction: Vector,
     /// Last time that the player fired a bullet
     last_fire_time: Int,
     /// Last time that the player was hit
@@ -49,7 +47,6 @@ pub fn new_player(initial_position: Vector) -> Player {
     position: initial_position,
     velocity: vector.Vector(0.0, 0.0, 0.0),
     acceleration: vector.Vector(0.0, 0.0, 0.0),
-    firing_direction: vector.Vector(0.0, 0.0, 0.0),
     last_fire_time: 0,
     last_hit_time: 0,
     current_health: base_max_health,
@@ -149,7 +146,7 @@ pub fn stop_y(player: Player) -> Player {
 
 const player_gravity_strength = 0.02
 
-// Applies gravity to the velocityy and resets z position to floor when appropriate.
+/// Applies gravity to the velocity and resets z position to floor when appropriate.
 pub fn apply_gravity(player: Player) -> Player {
   let position = case player.position.z {
     z if z <. 0.0 -> vector.Vector(player.position.x, player.position.y, 0.0)
@@ -166,12 +163,9 @@ pub fn apply_gravity(player: Player) -> Player {
   )
 }
 
-/// Make player look towards a point.
-pub fn look_toward(player: Player, point: Vector) -> Player {
-  Player(
-    ..player,
-    firing_direction: vector.vector_2d(vector.subtract(point, player.position)),
-  )
+/// Applies damage to the player
+pub fn apply_damage(player: Player, damage: Int) -> Player {
+  Player(..player, current_health: player.current_health - damage)
 }
 
 /// Is the player currently dead.
