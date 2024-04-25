@@ -175,7 +175,12 @@ pub fn is_player_dead(player: Player) -> Bool {
 
 /// Is the player currently invulnerable.
 pub fn is_player_invulnerable(player: Player) -> Bool {
-  player.last_hit_time + invulnerability_time <= utils.now_in_milliseconds()
+  player.last_hit_time + invulnerability_time >= utils.now_in_milliseconds()
+}
+
+/// Can the player fire a bullet at the moment.
+pub fn can_player_fire(player: Player) -> Bool {
+  player.last_fire_time + time_between_fire <= utils.now_in_milliseconds()
 }
 
 const dead_fill_color = "#000000"

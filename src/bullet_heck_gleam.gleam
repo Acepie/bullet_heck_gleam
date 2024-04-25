@@ -58,17 +58,17 @@ fn on_key_released(key: String, _: Int, state: WorldState) -> WorldState {
 }
 
 fn on_mouse_clicked(x: Float, y: Float, state: WorldState) -> WorldState {
+  let GameRunning(_dungeon, player, bullets) = state
+  use <- bool.guard(!player.can_player_fire(player), state)
+
   let firing_direction =
-    vector.vector_2d(vector.subtract(
-      vector.Vector(x, y, 0.0),
-      state.player.position,
-    ))
-  let player.Player(position: p, ..) = state.player
+    vector.vector_2d(vector.subtract(vector.Vector(x, y, 0.0), player.position))
+  let player.Player(position: p, ..) = player
   GameRunning(
     ..state,
     bullets: [
       bullet.spawn_bullet(vector.Vector(p.x, p.y, 0.0), firing_direction, True),
-      ..state.bullets
+      ..bullets
     ],
   )
 }
