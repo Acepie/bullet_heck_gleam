@@ -5,6 +5,7 @@ import gleam/list
 import p5js_gleam.{type P5}
 import p5js_gleam/bindings as p5
 import player
+import utils
 import vector
 
 /// Represents the overall game state
@@ -70,6 +71,7 @@ fn on_mouse_clicked(x: Float, y: Float, state: WorldState) -> WorldState {
       bullet.spawn_bullet(vector.Vector(p.x, p.y, 0.0), firing_direction, True),
       ..bullets
     ],
+    player: player.Player(..player, last_fire_time: utils.now_in_milliseconds()),
   )
 }
 
