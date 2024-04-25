@@ -9,8 +9,10 @@ const bullet_size = 6.0
 
 const bullet_speed = 5.0
 
+/// The amount of damage a bullet fired by the player does.
 pub const player_damage = 10
 
+/// The amount of damage a bullet fired by an enemy does.
 pub const enemy_damage = 5
 
 /// Represents a fired bullet.

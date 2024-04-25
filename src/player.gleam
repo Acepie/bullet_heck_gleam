@@ -4,6 +4,7 @@ import p5js_gleam/bindings as p5
 import utils
 import vector.{type Vector}
 
+/// The size of the player character in pixels.
 pub const player_size = 10.0
 
 const max_speed = 4.0
@@ -163,7 +164,7 @@ pub fn apply_gravity(player: Player) -> Player {
   )
 }
 
-/// Applies damage to the player
+/// Applies damage to the player.
 pub fn apply_damage(player: Player, damage: Int) -> Player {
   Player(..player, current_health: player.current_health - damage)
 }

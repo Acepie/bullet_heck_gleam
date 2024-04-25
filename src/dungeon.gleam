@@ -21,8 +21,10 @@ fn center() -> Int {
   dungeon_size / 2
 }
 
+/// The size of each room in pixels.
 pub const room_size = 100
 
+/// The total size of the dungeon in pixels.
 pub fn total_size() -> Float {
   int.to_float(dungeon_size * room_size)
 }
@@ -50,7 +52,7 @@ pub fn generate_dungeon() -> Dungeon {
 }
 
 // Recursively generate rooms by randomly deciding to traverse each direction.
-// For the current room, look at each of the cardinal direction and 
+// For the current room, look at each of the cardinal direction and
 // randomly decide to traverse or create wall.
 // Never goes backwards and auto stops at a maximum depth.
 fn generate_rooms(
@@ -289,7 +291,7 @@ pub fn can_move(
       let dir = coordinate_direction(from_coordinate, to_coordinate)
       case dir {
         Ok(dir) -> room.is_navigable(from, dir)
-        // Same room 
+        // Same room
         Error(_) -> True
       }
     }
