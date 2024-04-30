@@ -33,7 +33,7 @@ pub fn total_size() -> Float {
 
 const pit_count = 5
 
-const pit_size = 30.0
+const pit_size = 20.0
 
 const minimum_pit_distance = 80.0
 
@@ -384,4 +384,10 @@ pub fn can_move(
     }
     _, _ -> False
   }
+}
+
+/// Checks if a point is on top of a pit.
+pub fn is_over_pit(dungeon: Dungeon, position: vector.Vector) -> Bool {
+  use pit <- list.any(dungeon.pits)
+  vector.distance(pit.position, position) <. pit.size
 }

@@ -8,7 +8,7 @@ pub type Pit {
   Pit(
     /// The position of the center of the pit.
     position: Vector,
-    /// The size of the pit.
+    /// The radius of the pit.
     size: Float,
   )
 }
@@ -21,5 +21,5 @@ pub fn draw(p: P5, pit: Pit) {
   |> p5.fill("#3C3C3C")
   |> p5.circle(pit.position.x -. 1.0, pit.position.y -. 1.0, pit.size +. 1.0)
   |> p5.fill("#000000")
-  |> p5.circle(pit.position.x, pit.position.y, pit.size)
+  |> p5.circle(pit.position.x, pit.position.y, pit.size *. 2.0)
 }

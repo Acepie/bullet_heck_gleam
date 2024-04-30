@@ -16,7 +16,7 @@ packages = [
   { name = "gleam_json", version = "1.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib", "thoas"], otp_app = "gleam_json", source = "hex", outer_checksum = "8B197DD5D578EA6AC2C0D4BDC634C71A5BCA8E7DB5F47091C263ECB411A60DF3" },
   { name = "gleam_stdlib", version = "0.37.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "5398BD6C2ABA17338F676F42F404B9B7BABE1C8DC7380031ACB05BBE1BCF3742" },
   { name = "glint", version = "0.18.1", build_tools = ["gleam"], requirements = ["gleam_community_ansi", "gleam_community_colour", "gleam_stdlib", "snag"], otp_app = "glint", source = "hex", outer_checksum = "5FB54D7732B4105E4AF4D89A7EE6D5E8CF33DA13A3575D0C6ECE470B97958454" },
-  { name = "p5js_gleam", version = "2.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "p5js_gleam", source = "hex", outer_checksum = "239AB03FB21F8CA929AE8E0C246AAF37D316AC1E6431470F17033C9483AF336D" },
+  { name = "p5js_gleam", version = "2.1.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "p5js_gleam", source = "hex", outer_checksum = "4EEC8FCD162486FCAA2AFEC9E8B7A8843AC9935551CF2B2A604A0F070AB6B00F" },
   { name = "prng", version = "3.0.2", build_tools = ["gleam"], requirements = ["gleam_bitwise", "gleam_stdlib"], otp_app = "prng", source = "hex", outer_checksum = "C61B103F9AF5031ADAA35187CCE7130845EF5088D88FD084E5995D4FBEC9D745" },
   { name = "ranger", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "ranger", source = "hex", outer_checksum = "1566C272B1D141B3BBA38B25CB761EF56E312E79EC0E2DFD4D3C19FB0CC1F98C" },
   { name = "simplifile", version = "1.7.0", build_tools = ["gleam"], requirements = ["filepath", "gleam_stdlib"], otp_app = "simplifile", source = "hex", outer_checksum = "1D5DFA3A2F9319EC85825F6ED88B8E449F381B0D55A62F5E61424E748E7DDEB0" },
@@ -30,6 +30,6 @@ packages = [
 esgleam = { version = ">= 0.6.0 and < 1.0.0" }
 gleam_community_maths = { version = ">= 1.1.0 and < 2.0.0" }
 gleam_stdlib = { version = ">= 0.36.0 and < 2.0.0" }
-p5js_gleam = { version = ">= 2.1.0 and < 3.0.0"}
+p5js_gleam = { version = ">= 2.1.1 and < 3.0.0"}
 prng = { version = ">= 3.0.2 and < 4.0.0" }
 startest = { version = ">= 0.2.0 and < 1.0.0" }

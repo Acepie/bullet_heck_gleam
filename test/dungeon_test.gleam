@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/int
 import gleam/iterator.{repeatedly, take}
 import gleam/list
+import pit
 import room
 import startest.{describe, it}
 import startest/expect
@@ -92,7 +93,7 @@ fn validate_pits(d: dungeon.Dungeon) {
 
 pub fn dungeon_tests() {
   describe("dungeon", [
-    it("generated dungeons", fn() {
+    it("generate_dungeon", fn() {
       {
         use <- repeatedly
 
@@ -104,7 +105,7 @@ pub fn dungeon_tests() {
 
       Nil
     }),
-    it("can_move in a dungeon", fn() {
+    it("can_move", fn() {
       let rooms =
         dict.new()
         |> dict.insert(#(1, 1), room.initialize_unbounded_room())
@@ -163,6 +164,47 @@ pub fn dungeon_tests() {
       ))
 
       Nil
+    }),
+    it("is_over_pit", fn() {
+      let rooms =
+        dict.new()
+        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+        |> dict.insert(
+          #(2, 1),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Bottom, True),
+        )
+        |> dict.insert(
+          #(2, 2),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Top, True),
+        )
+      let dungeon =
+        dungeon.Dungeon(rooms: rooms, pits: [
+          pit.Pit(position: vector.Vector(0.0, 0.0, 0.0), size: 30.0),
+        ])
+
+      expect.to_be_true(dungeon.is_over_pit(
+        dungeon,
+        vector.Vector(0.0, 0.0, 0.0),
+      ))
+      expect.to_be_true(dungeon.is_over_pit(
+        dungeon,
+        vector.Vector(15.0, 0.0, 0.0),
+      ))
+      expect.to_be_true(dungeon.is_over_pit(
+        dungeon,
+        vector.Vector(20.0, 0.0, 0.0),
+      ))
+      expect.to_be_true(dungeon.is_over_pit(
+        dungeon,
+        vector.Vector(15.0, 15.0, 0.0),
+      ))
+      expect.to_be_false(dungeon.is_over_pit(
+        dungeon,
+        vector.Vector(35.0, 15.0, 0.0),
+      ))
     }),
   ])
 }
