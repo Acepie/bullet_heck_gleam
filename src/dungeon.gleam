@@ -3,8 +3,10 @@ import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
 import gleam/iterator
+import gleam/list
 import gleam/result
 import p5js_gleam.{type P5}
+import pit.{type Pit}
 import prng/random
 import room
 import vector
@@ -29,6 +31,12 @@ pub fn total_size() -> Float {
   int.to_float(dungeon_size * room_size)
 }
 
+const pit_count = 5
+
+const pit_size = 30.0
+
+const minimum_pit_distance = 80.0
+
 type Coordinate =
   #(Int, Int)
 
@@ -37,7 +45,12 @@ type Rooms =
 
 /// Represents the dungeon and all its hazards.
 pub type Dungeon {
-  Dungeon(rooms: Rooms)
+  Dungeon(
+    /// The different rooms in the dungeon.
+    rooms: Rooms,
+    /// The pits in the dungeon.
+    pits: List(Pit),
+  )
 }
 
 /// Creates the initial game dungeon.
@@ -48,7 +61,8 @@ pub fn generate_dungeon() -> Dungeon {
     |> generate_rooms(center, center, 0, room.Left)
     |> break_walls
     |> compute_corner_walls
-  Dungeon(rooms)
+  let pits = generate_pits(rooms)
+  Dungeon(rooms, pits)
 }
 
 // Recursively generate rooms by randomly deciding to traverse each direction.
@@ -224,14 +238,87 @@ fn compute_corner_walls(rooms: Rooms) -> Rooms {
   dict.insert(rooms, #(column, row), r)
 }
 
+// Creates pits in random rooms in the dungeon.
+fn generate_pits(rooms: Rooms) -> List(Pit) {
+  list.range(1, pit_count)
+  |> list.fold([], fn(pits, _) {
+    // Get a location to place the pit
+    let position = get_location_to_place_pit(rooms, pits)
+    [pit.Pit(position, pit_size), ..pits]
+  })
+}
+
+// Check if a position is too close to an existing pit.
+fn too_close_to_existing_pit(pits: List(Pit), position: vector.Vector) -> Bool {
+  use pit <- list.any(pits)
+  let distance = vector.distance(pit.position, position)
+  distance <. minimum_pit_distance
+}
+
+// Check if a position is too close to where the player spawns.
+fn too_close_to_player_spawn(position: vector.Vector) -> Bool {
+  let c = center()
+  vector.distance(coordinate_to_point(#(c, c)), position)
+  <. minimum_pit_distance
+}
+
+// Get a random location to place a pit.
+// Pits should not be too close to existing pits and should not be too close to where the player starts.
+fn get_location_to_place_pit(rooms: Rooms, pits: List(Pit)) -> vector.Vector {
+  // Get a room to place the pit in
+  let point = get_random_point_in_room(rooms)
+
+  // Get a random offset from the point
+  let offset_x = random.float(-30.0, 30.0) |> random.random_sample
+  let offset_y = random.float(-30.0, 30.0) |> random.random_sample
+  let position = vector.add(point, vector.Vector(offset_x, offset_y, 0.0))
+
+  case
+    too_close_to_existing_pit(pits, position)
+    || too_close_to_player_spawn(position)
+  {
+    True -> get_location_to_place_pit(rooms, pits)
+    _ -> position
+  }
+}
+
+// Get a random point by generating random coordinates until a room is found.
+fn get_random_point_in_room(rooms: Rooms) -> vector.Vector {
+  let random_x = random.int(0, dungeon_size) |> random.random_sample
+  let random_y = random.int(0, dungeon_size) |> random.random_sample
+  let coordinate = #(random_x, random_y)
+  case dict.get(rooms, coordinate) {
+    Error(_) -> get_random_point_in_room(rooms)
+    Ok(_) -> coordinate_to_point(coordinate)
+  }
+}
+
+// Given a coordinate find the center point of the room.
+fn coordinate_to_point(coordinate: Coordinate) -> vector.Vector {
+  let x =
+    int.to_float(coordinate.0 * room_size) +. int.to_float(room_size) /. 2.0
+  let y =
+    int.to_float(coordinate.1 * room_size) +. int.to_float(room_size) /. 2.0
+  vector.Vector(x, y, 0.0)
+}
+
 /// Renders the dungeon to the screen.
 pub fn draw(p: P5, dungeon: Dungeon) {
-  // rendering with shadows depends on order so we are using ranges
-  use col <- iterator.each(iterator.range(0, dungeon_size))
-  use row <- iterator.each(iterator.range(0, dungeon_size))
-  use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
+  // Draw rooms
+  {
+    // rendering with shadows depends on order so we are using ranges
+    use col <- iterator.each(iterator.range(0, dungeon_size))
+    use row <- iterator.each(iterator.range(0, dungeon_size))
+    use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
 
-  room.draw(p, r, col, row, room_size)
+    room.draw(p, r, col, row, room_size)
+  }
+
+  // Draw pits
+  {
+    use pit <- list.each(dungeon.pits)
+    pit.draw(p, pit)
+  }
 }
 
 /// Get the coordinate that the given point is in.

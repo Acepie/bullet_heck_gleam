@@ -8,74 +8,97 @@ import startest.{describe, it}
 import startest/expect
 import vector
 
-pub fn validate_room_is_traversable(d: dungeon.Dungeon) {
+fn validate_room_is_traversable(d: dungeon.Dungeon) {
   let rooms =
     d.rooms
     |> dict.to_list()
 
-  use #(#(column, row), room) <- list.each(rooms)
+  {
+    use #(#(column, row), room) <- list.each(rooms)
 
-  // Check direction is symmetrical
-  // Returns if the direction is navigable
-  let test_direction = fn(dir: room.Direction) -> Bool {
-    case room.is_navigable(room, dir) {
-      // Confirm the other room can navigate to this room
-      True -> {
-        let next_room_coords = dungeon.next_room_indices(column, row, dir)
-        let next_room = dict.get(d.rooms, next_room_coords)
-        expect.to_be_ok(next_room)
-        let assert Ok(next_room) = next_room
-        expect.to_be_true(room.is_navigable(
-          next_room,
-          room.inverse_direction(dir),
-        ))
-        True
-      }
-      // Confirm the other room can't navigate to this room or is empty
-      False -> {
-        let next_room_coords = dungeon.next_room_indices(column, row, dir)
-        let next_room = dict.get(d.rooms, next_room_coords)
-
-        case next_room {
-          Error(_) -> Nil
-          Ok(next_room) -> {
-            expect.to_be_false(room.is_navigable(
-              next_room,
-              room.inverse_direction(dir),
-            ))
-          }
+    // Check direction is symmetrical
+    // Returns if the direction is navigable
+    let test_direction = fn(dir: room.Direction) -> Bool {
+      case room.is_navigable(room, dir) {
+        // Confirm the other room can navigate to this room
+        True -> {
+          let next_room_coords = dungeon.next_room_indices(column, row, dir)
+          let next_room = dict.get(d.rooms, next_room_coords)
+          expect.to_be_ok(next_room)
+          let assert Ok(next_room) = next_room
+          expect.to_be_true(room.is_navigable(
+            next_room,
+            room.inverse_direction(dir),
+          ))
+          True
         }
-        False
+        // Confirm the other room can't navigate to this room or is empty
+        False -> {
+          let next_room_coords = dungeon.next_room_indices(column, row, dir)
+          let next_room = dict.get(d.rooms, next_room_coords)
+
+          case next_room {
+            Error(_) -> Nil
+            Ok(next_room) -> {
+              expect.to_be_false(room.is_navigable(
+                next_room,
+                room.inverse_direction(dir),
+              ))
+            }
+          }
+          False
+        }
       }
     }
+
+    // Check each room has at least 1 other navigable room
+    expect.to_be_true(
+      list.any(
+        [
+          test_direction(room.Left),
+          test_direction(room.Right),
+          test_direction(room.Top),
+          test_direction(room.Bottom),
+          test_direction(room.TopLeft),
+          test_direction(room.TopRight),
+          test_direction(room.BottomLeft),
+          test_direction(room.BottomRight),
+        ],
+        fn(x) { x },
+      ),
+    )
   }
 
-  // Check each room has at least 1 other navigable room
-  expect.to_be_true(
-    list.any(
-      [
-        test_direction(room.Left),
-        test_direction(room.Right),
-        test_direction(room.Top),
-        test_direction(room.Bottom),
-        test_direction(room.TopLeft),
-        test_direction(room.TopRight),
-        test_direction(room.BottomLeft),
-        test_direction(room.BottomRight),
-      ],
-      fn(x) { x },
-    ),
-  )
+  d
+}
+
+fn validate_pits(d: dungeon.Dungeon) {
+  let pits = d.pits
+
+  {
+    use pit1 <- list.each(pits)
+    use pit2 <- list.each(pits)
+
+    expect.to_be_true(
+      pit1 == pit2 || vector.distance(pit1.position, pit2.position) >. 80.0,
+    )
+    expect.to_be_true(
+      vector.distance(pit1.position, vector.Vector(350.0, 350.0, 0.0)) >. 80.0,
+    )
+  }
+
+  d
 }
 
 pub fn dungeon_tests() {
   describe("dungeon", [
-    it("generated dungeons should always be traversable", fn() {
+    it("generated dungeons", fn() {
       {
         use <- repeatedly
 
         dungeon.generate_dungeon()
         |> validate_room_is_traversable
+        |> validate_pits
       }
       |> take(30)
 
@@ -96,7 +119,7 @@ pub fn dungeon_tests() {
           room.initialize_unbounded_room()
             |> room.set_navigable(room.Top, True),
         )
-      let dungeon = dungeon.Dungeon(rooms: rooms)
+      let dungeon = dungeon.Dungeon(rooms: rooms, pits: [])
 
       // to out of bounds
       expect.to_be_false(dungeon.can_move(
