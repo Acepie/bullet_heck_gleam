@@ -269,8 +269,12 @@ fn get_location_to_place_pit(rooms: Rooms, pits: List(Pit)) -> vector.Vector {
   let point = get_random_point_in_room(rooms)
 
   // Get a random offset from the point
-  let offset_x = random.float(-30.0, 30.0) |> random.random_sample
-  let offset_y = random.float(-30.0, 30.0) |> random.random_sample
+  let offset_x =
+    random.float(-30.0, 30.0)
+    |> random.random_sample
+  let offset_y =
+    random.float(-30.0, 30.0)
+    |> random.random_sample
   let position = vector.add(point, vector.Vector(offset_x, offset_y, 0.0))
 
   case
@@ -284,8 +288,12 @@ fn get_location_to_place_pit(rooms: Rooms, pits: List(Pit)) -> vector.Vector {
 
 // Get a random point by generating random coordinates until a room is found.
 fn get_random_point_in_room(rooms: Rooms) -> vector.Vector {
-  let random_x = random.int(0, dungeon_size) |> random.random_sample
-  let random_y = random.int(0, dungeon_size) |> random.random_sample
+  let random_x =
+    random.int(0, dungeon_size)
+    |> random.random_sample
+  let random_y =
+    random.int(0, dungeon_size)
+    |> random.random_sample
   let coordinate = #(random_x, random_y)
   case dict.get(rooms, coordinate) {
     Error(_) -> get_random_point_in_room(rooms)

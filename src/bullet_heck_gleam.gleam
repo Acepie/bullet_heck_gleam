@@ -32,16 +32,16 @@ fn setup(p: P5) -> WorldState {
 }
 
 fn draw(p: P5, state: WorldState) {
+  p5.background(p, "#000000")
   case state {
     GameRunning(dungeon, player, bullets) -> {
-      p5.background(p, "#000000")
       dungeon.draw(p, dungeon)
       player.draw(p, player)
       list.each(bullets, bullet.draw(p, _))
       p
     }
     GameOver(_) -> {
-      p5.background(p, "#000000")
+      p
     }
   }
 }
@@ -168,7 +168,7 @@ fn on_tick(state: WorldState) -> WorldState {
       use <- bool.guard(
         player.position.z <. 0.0
           && dungeon.is_over_pit(dungeon, player.position),
-        GameOver(False),
+        GameOver(True),
       )
 
       let player = player.update_velocity(player)
