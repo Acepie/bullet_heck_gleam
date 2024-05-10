@@ -5,6 +5,7 @@ import gleam/int
 import gleam/iterator
 import gleam/list
 import gleam/result
+import obstacle.{type Obstacle}
 import p5js_gleam.{type P5}
 import pit.{type Pit}
 import prng/random
@@ -37,6 +38,10 @@ const pit_size = 20.0
 
 const minimum_pit_distance = 80.0
 
+const obstacle_rate = 0.5
+
+const obstacle_limit = 3
+
 type Coordinate =
   #(Int, Int)
 
@@ -50,6 +55,8 @@ pub type Dungeon {
     rooms: Rooms,
     /// The pits in the dungeon.
     pits: List(Pit),
+    /// The obstacles in the dungeon.
+    obstacles: List(Obstacle),
   )
 }
 
@@ -62,7 +69,8 @@ pub fn generate_dungeon() -> Dungeon {
     |> break_walls
     |> compute_corner_walls
   let pits = generate_pits(rooms)
-  Dungeon(rooms, pits)
+  let obstacles = generate_obstacles(rooms, pits)
+  Dungeon(rooms, pits, obstacles)
 }
 
 // Recursively generate rooms by randomly deciding to traverse each direction.
@@ -88,8 +96,8 @@ fn generate_rooms(
   use <- bool.guard(recursion_depth > max_depth, rooms)
 
   let advance_direction = fn(rooms: Rooms, direction: room.Direction) -> Rooms {
-    // Do not try to go back where you came from
     use <- bool.guard(
+      // Do not try to go back where you came from
       direction == previous_direction && recursion_depth != 0,
       rooms,
     )
@@ -164,8 +172,8 @@ fn break_walls(rooms: Rooms) -> Rooms {
   use rooms, #(column, row), _ <- dict.fold(rooms, rooms)
 
   let break_in_direction = fn(rooms: Rooms, dir: room.Direction) -> Rooms {
-    // Check if there is a room to the right
     let #(next_column, next_row) = next_room_indices(column, row, dir)
+    // Check if there is a room to the right
     use <- bool.guard(coordinate_out_of_bounds(next_column, next_row), rooms)
 
     let next_room = dict.get(rooms, #(next_column, next_row))
@@ -242,10 +250,59 @@ fn compute_corner_walls(rooms: Rooms) -> Rooms {
 fn generate_pits(rooms: Rooms) -> List(Pit) {
   list.range(1, pit_count)
   |> list.fold([], fn(pits, _) {
-    // Get a location to place the pit
     let position = get_location_to_place_pit(rooms, pits)
+    // Get a location to place the pit
     [pit.Pit(position, pit_size), ..pits]
   })
+}
+
+// Creates obstacles in random rooms in the dungeon.
+fn generate_obstacles(rooms: Rooms, pits: List(Pit)) -> List(Obstacle) {
+  use obstacles, coordinate, _ <- dict.fold(rooms, [])
+
+  // Roll if room should have obstacles
+  let obstacle_roll: Float =
+    random.float(0.0, 1.0)
+    |> random.random_sample
+  use <- bool.guard(obstacle_roll >. obstacle_rate, obstacles)
+
+  let point = coordinate_to_point(coordinate)
+
+  // Roll number of obstacles to place
+  let obstacle_count: Int =
+    random.int(0, obstacle_limit)
+    |> random.random_sample
+
+  use obstacles, _ <- list.fold(list.range(1, obstacle_count), obstacles)
+
+  case attempt_place_obstacle(point, pits, 0) {
+    Error(_) -> obstacles
+    Ok(obstacle) -> [obstacle, ..obstacles]
+  }
+}
+
+// Attempts to place an obstacle in a room. Returns an error if it fails.
+fn attempt_place_obstacle(
+  point: vector.Vector,
+  pits: List(Pit),
+  tries: Int,
+) -> Result(Obstacle, Nil) {
+  use <- bool.guard(tries > 3, Error(Nil))
+  // Get a random offset from the point
+  let max_offset = { int.to_float(room_size) -. obstacle.size } /. 2.0
+  let offset_x =
+    random.float(max_offset *. -1.0, max_offset)
+    |> random.random_sample
+  let offset_y =
+    random.float(max_offset *. -1.0, max_offset)
+    |> random.random_sample
+  let position = vector.add(point, vector.Vector(offset_x, offset_y, 0.0))
+
+  // Check if the obstacle is too close to a pit
+  case too_close_to_existing_pit(pits, position) {
+    True -> attempt_place_obstacle(point, pits, tries + 1)
+    False -> Ok(obstacle.Obstacle(position))
+  }
 }
 
 // Check if a position is too close to an existing pit.
@@ -326,6 +383,12 @@ pub fn draw(p: P5, dungeon: Dungeon) {
   {
     use pit <- list.each(dungeon.pits)
     pit.draw(p, pit)
+  }
+
+  // Draw obstacles
+  {
+    use obstacle <- list.each(dungeon.obstacles)
+    obstacle.draw(p, obstacle)
   }
 }
 

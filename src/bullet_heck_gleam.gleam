@@ -3,6 +3,7 @@ import dungeon
 import gleam/bool
 import gleam/int
 import gleam/list
+import obstacle
 import p5js_gleam.{type Assets, type P5}
 import p5js_gleam/bindings as p5
 import player
@@ -297,6 +298,13 @@ fn on_tick(state: WorldState) -> WorldState {
 
       let player = player.update_velocity(player)
       let player = player.apply_gravity(player)
+      let player =
+        list.fold(dungeon.obstacles, player, fn(player, o) {
+          case obstacle.collides_with(o, player.position, player.player_size) {
+            True -> player.apply_damage(player, obstacle.damage)
+            False -> player
+          }
+        })
 
       let bullets =
         bullets
@@ -304,7 +312,6 @@ fn on_tick(state: WorldState) -> WorldState {
 
       let #(bullets, player) =
         list.fold(bullets, #([], player), fn(acc, b) {
-          // If the bullet hits a wall then remove it
           use <- bool.guard(
             !dungeon.can_move(
               dungeon,
@@ -313,6 +320,7 @@ fn on_tick(state: WorldState) -> WorldState {
             ),
             acc,
           )
+          // If the bullet hits a wall then remove it
 
           // Check if the bullet collides with something it can hit
           let #(bullets, player) = acc
@@ -326,6 +334,8 @@ fn on_tick(state: WorldState) -> WorldState {
 
           #([bullet.advance_bullet(b), ..bullets], player)
         })
+
+      use <- bool.guard(player.is_player_dead(player), GameOver(False, score))
 
       GameRunning(
         dungeon: dungeon,
