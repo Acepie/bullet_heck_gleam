@@ -333,12 +333,54 @@ fn on_tick(state: WorldState) -> WorldState {
           }
         })
 
+      let #(enemies, player, score) =
+        list.fold(enemies, #([], player, score), fn(acc, e) {
+          let #(enemies, player, score) = acc
+          // Apply behavior to enemy
+          let enemy = e.btree(e, dungeon, player, bullets)
+
+          // Kill enemy if they have fallen into pit
+          use <- bool.guard(
+            enemy.position.z <=. 0.0
+              && dungeon.is_over_pit(dungeon, enemy.position),
+            #(enemies, player, score + enemy.value),
+          )
+
+          // Check player collides with the enemy
+          let player = case
+            enemy.collides_with(enemy, player.position, player.player_size)
+            && !player.is_player_invulnerable(player)
+          {
+            True -> player.apply_damage(player, enemy.damage)
+            False -> player
+          }
+
+          // Check the enemy collides with any obstacles
+          let enemy =
+            list.fold(dungeon.obstacles, enemy, fn(enemy, o) {
+              case obstacle.collides_with(o, enemy.position, enemy.enemy_size) {
+                True -> enemy.apply_damage(enemy, obstacle.damage)
+                False -> enemy
+              }
+            })
+
+          // Kill enemy if they have died
+          use <- bool.guard(enemy.is_enemy_dead(enemy), #(
+            enemies,
+            player,
+            score + enemy.value,
+          ))
+
+          #([enemy, ..enemies], player, score)
+        })
+
       let bullets =
         bullets
         |> list.filter(bullet.is_still_alive)
 
-      let #(bullets, player) =
-        list.fold(bullets, #([], player), fn(acc, b) {
+      let #(bullets, player, enemies, score) =
+        list.fold(bullets, #([], player, enemies, score), fn(acc, b) {
+          // If the bullet hits a wall then remove it
           use <- bool.guard(
             !dungeon.can_move(
               dungeon,
@@ -347,20 +389,53 @@ fn on_tick(state: WorldState) -> WorldState {
             ),
             acc,
           )
-          // If the bullet hits a wall then remove it
 
-          // Check if the bullet collides with something it can hit
-          let #(bullets, player) = acc
-          let player = case
+          let #(bullets, player, enemies, score) = acc
+
+          // Check if the bullet collides with the player
+          use <- bool.guard(
             !b.belongs_to_player
-            && bullet.collides_with(b, player.position, player.player_size)
-            && !player.is_player_invulnerable(player)
-          {
-            True -> player.apply_damage(player, bullet.enemy_damage)
-            False -> player
-          }
+              && bullet.collides_with(b, player.position, player.player_size)
+              && !player.is_player_invulnerable(player),
+            #(
+              bullets,
+              player.apply_damage(player, bullet.enemy_damage),
+              enemies,
+              score,
+            ),
+          )
 
-          #([bullet.advance_bullet(b), ..bullets], player)
+          // Check if the bullet collides any enemies
+          let #(enemies, score, any_hit) =
+            list.fold(enemies, #([], score, False), fn(acc, e) {
+              let #(enemies, score, any_hit) = acc
+              let #(e, any_hit) = case
+                b.belongs_to_player
+                && bullet.collides_with(b, e.position, enemy.enemy_size)
+              {
+                True -> #(enemy.apply_damage(e, bullet.player_damage), True)
+                False -> #(e, any_hit)
+              }
+
+              // Kill enemy if they have died
+              use <- bool.guard(enemy.is_enemy_dead(e), #(
+                enemies,
+                score + enemy.value,
+                any_hit,
+              ))
+
+              #([e, ..enemies], score, any_hit)
+            })
+
+          case any_hit {
+            True -> #(bullets, player, enemies, score)
+            False -> #(
+              [bullet.advance_bullet(b), ..bullets],
+              player,
+              enemies,
+              score,
+            )
+          }
         })
 
       use <- bool.guard(player.is_player_dead(player), GameOver(False, score))
