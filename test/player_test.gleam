@@ -308,6 +308,21 @@ pub fn player_tests() {
         ),
       )
     }),
+    it("apply_damage", fn() {
+      let player =
+        Player(
+          position: Vector(0.0, 0.0, 0.0),
+          velocity: vector.Vector(0.0, 0.0, 1.0),
+          acceleration: vector.Vector(0.0, 0.0, 0.0),
+          last_fire_time: 0,
+          last_hit_time: 0,
+          current_health: 100,
+          max_health: 100,
+        )
+        |> player.apply_damage(20)
+      expect.to_equal(player.current_health, 80)
+      expect.to_not_equal(player.last_hit_time, 0)
+    }),
     it("is_player_dead", fn() {
       expect.to_be_false(
         Player(

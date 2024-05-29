@@ -300,7 +300,10 @@ fn on_tick(state: WorldState) -> WorldState {
       let player = player.apply_gravity(player)
       let player =
         list.fold(dungeon.obstacles, player, fn(player, o) {
-          case obstacle.collides_with(o, player.position, player.player_size) {
+          case
+            obstacle.collides_with(o, player.position, player.player_size)
+            && !player.is_player_invulnerable(player)
+          {
             True -> player.apply_damage(player, obstacle.damage)
             False -> player
           }
@@ -327,6 +330,7 @@ fn on_tick(state: WorldState) -> WorldState {
           let player = case
             !b.belongs_to_player
             && bullet.collides_with(b, player.position, player.player_size)
+            && !player.is_player_invulnerable(player)
           {
             True -> player.apply_damage(player, bullet.enemy_damage)
             False -> player

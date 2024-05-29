@@ -166,7 +166,11 @@ pub fn apply_gravity(player: Player) -> Player {
 
 /// Applies damage to the player.
 pub fn apply_damage(player: Player, damage: Int) -> Player {
-  Player(..player, current_health: player.current_health - damage)
+  Player(
+    ..player,
+    current_health: player.current_health - damage,
+    last_hit_time: utils.now_in_milliseconds(),
+  )
 }
 
 /// Is the player currently dead.

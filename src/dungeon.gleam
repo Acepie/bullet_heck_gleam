@@ -172,8 +172,8 @@ fn break_walls(rooms: Rooms) -> Rooms {
   use rooms, #(column, row), _ <- dict.fold(rooms, rooms)
 
   let break_in_direction = fn(rooms: Rooms, dir: room.Direction) -> Rooms {
-    let #(next_column, next_row) = next_room_indices(column, row, dir)
     // Check if there is a room to the right
+    let #(next_column, next_row) = next_room_indices(column, row, dir)
     use <- bool.guard(coordinate_out_of_bounds(next_column, next_row), rooms)
 
     let next_room = dict.get(rooms, #(next_column, next_row))
@@ -250,8 +250,8 @@ fn compute_corner_walls(rooms: Rooms) -> Rooms {
 fn generate_pits(rooms: Rooms) -> List(Pit) {
   list.range(1, pit_count)
   |> list.fold([], fn(pits, _) {
-    let position = get_location_to_place_pit(rooms, pits)
     // Get a location to place the pit
+    let position = get_location_to_place_pit(rooms, pits)
     [pit.Pit(position, pit_size), ..pits]
   })
 }
