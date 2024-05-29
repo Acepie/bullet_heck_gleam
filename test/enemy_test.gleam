@@ -3,6 +3,11 @@ import startest.{describe, it}
 import startest/expect
 import vector.{Vector}
 
+fn dummy_btree(i: enemy.BehaviorInput) -> enemy.BehaviorResult {
+  let enemy.BehaviorInput(e, _, _, _) = i
+  enemy.BehaviorResult(True, e, [])
+}
+
 pub fn enemy_tests() {
   describe("enemy", [
     it("new_enemy", fn() {
@@ -20,7 +25,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         )
         |> enemy.apply_gravity
       expect.to_equal(enemy.velocity, vector.Vector(0.0, 0.0, 0.98))
@@ -32,7 +37,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         )
         |> enemy.apply_gravity
       expect.to_equal(enemy.position, vector.Vector(0.0, 0.0, 0.0))
@@ -46,7 +51,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         )
         |> enemy.apply_damage(20)
       expect.to_equal(enemy.current_health, 80)
@@ -59,7 +64,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
       )
@@ -70,7 +75,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 0,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
       )
@@ -83,7 +88,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         ),
         Vector(10.0, 0.0, 0.0),
         1.0,
@@ -95,7 +100,7 @@ pub fn enemy_tests() {
           rotation: 0.0,
           current_health: 100,
           max_health: 100,
-          btree: fn(e, _, _, _) { e },
+          btree: dummy_btree,
         ),
         Vector(0.0, 0.0, 0.0),
         1.0,

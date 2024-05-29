@@ -18,9 +18,37 @@ pub const value = 100
 
 const max_enemy_health = 80
 
+/// Represents the input data needed for an enemy to update.
+pub type BehaviorInput {
+  /// Represents the input data needed for an enemy to update.
+  BehaviorInput(
+    /// The enemy being updated.
+    enemy: Enemy,
+    /// All enemies in the game.
+    enemies: List(Enemy),
+    /// The dungeon the enemy is in.
+    dungeon: Dungeon,
+    /// The player character.
+    player: Player,
+  )
+}
+
+/// Represents the result of an enemy update.
+pub type BehaviorResult {
+  /// Represents the result of an enemy update.
+  BehaviorResult(
+    /// Whether the action can continue
+    success: Bool,
+    /// The updated enemy.
+    enemy: Enemy,
+    /// Any bullets that were fired by the enemy.
+    bullets: List(Bullet),
+  )
+}
+
 /// Represents a function that given world information and an enemy updates the enemy.
 pub type BehaviorTree =
-  fn(Enemy, Dungeon, Player, List(Bullet)) -> Enemy
+  fn(BehaviorInput) -> BehaviorResult
 
 /// Represents an enemy to defeat.
 pub type Enemy {
@@ -50,7 +78,10 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
     current_health: max_enemy_health,
     max_health: max_enemy_health,
     // TODO: actually make a behavior
-    btree: fn(e, _, _, _) { e },
+    btree: fn(i) {
+      let BehaviorInput(e, _, _, _) = i
+      BehaviorResult(True, e, [])
+    },
   )
 }
 

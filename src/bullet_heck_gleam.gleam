@@ -333,17 +333,20 @@ fn on_tick(state: WorldState) -> WorldState {
           }
         })
 
-      let #(enemies, player, score) =
-        list.fold(enemies, #([], player, score), fn(acc, e) {
-          let #(enemies, player, score) = acc
+      let #(enemies, bullets, player, score) =
+        list.fold(enemies, #([], bullets, player, score), fn(acc, e) {
+          let #(enemies, bullets, player, score) = acc
           // Apply behavior to enemy
-          let enemy = e.btree(e, dungeon, player, bullets)
+          let enemy.BehaviorResult(_, enemy, new_bullets) =
+            e.btree(enemy.BehaviorInput(e, enemies, dungeon, player))
+
+          let bullets = list.append(new_bullets, bullets)
 
           // Kill enemy if they have fallen into pit
           use <- bool.guard(
             enemy.position.z <=. 0.0
               && dungeon.is_over_pit(dungeon, enemy.position),
-            #(enemies, player, score + enemy.value),
+            #(enemies, bullets, player, score + enemy.value),
           )
 
           // Check player collides with the enemy
@@ -367,11 +370,12 @@ fn on_tick(state: WorldState) -> WorldState {
           // Kill enemy if they have died
           use <- bool.guard(enemy.is_enemy_dead(enemy), #(
             enemies,
+            bullets,
             player,
             score + enemy.value,
           ))
 
-          #([enemy, ..enemies], player, score)
+          #([enemy, ..enemies], bullets, player, score)
         })
 
       let bullets =
