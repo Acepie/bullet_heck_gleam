@@ -251,7 +251,7 @@ fn generate_pits(rooms: Rooms) -> List(Pit) {
   list.range(1, pit_count)
   |> list.fold([], fn(pits, _) {
     // Get a location to place the pit
-    let position = get_location_to_place_pit(rooms, pits)
+    let position = get_location_to_place_object(rooms, pits)
     [pit.Pit(position, pit_size), ..pits]
   })
 }
@@ -319,9 +319,12 @@ fn too_close_to_player_spawn(position: vector.Vector) -> Bool {
   <. minimum_pit_distance
 }
 
-// Get a random location to place a pit.
-// Pits should not be too close to existing pits and should not be too close to where the player starts.
-fn get_location_to_place_pit(rooms: Rooms, pits: List(Pit)) -> vector.Vector {
+/// Get a random location to place an object.
+/// Objects should not be too close to existing pits and should not be too close to where the player starts.
+pub fn get_location_to_place_object(
+  rooms: Rooms,
+  pits: List(Pit),
+) -> vector.Vector {
   // Get a room to place the pit in
   let point = get_random_point_in_room(rooms)
 
@@ -338,7 +341,7 @@ fn get_location_to_place_pit(rooms: Rooms, pits: List(Pit)) -> vector.Vector {
     too_close_to_existing_pit(pits, position)
     || too_close_to_player_spawn(position)
   {
-    True -> get_location_to_place_pit(rooms, pits)
+    True -> get_location_to_place_object(rooms, pits)
     _ -> position
   }
 }

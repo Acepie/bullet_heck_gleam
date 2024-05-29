@@ -1,5 +1,6 @@
 import bullet
 import dungeon
+import enemy
 import gleam/bool
 import gleam/int
 import gleam/list
@@ -19,6 +20,7 @@ type WorldState {
     dungeon: dungeon.Dungeon,
     player: player.Player,
     bullets: List(bullet.Bullet),
+    enemies: List(enemy.Enemy),
     score: Int,
   )
   /// The game over screen when the player has lost.
@@ -86,10 +88,11 @@ fn draw(p: P5, state: WorldState, assets: Assets) {
         canvas_size /. 2.0 +. 265.0,
       )
     }
-    GameRunning(dungeon, player, bullets, score) -> {
+    GameRunning(dungeon, player, bullets, enemies, score) -> {
       dungeon.draw(p, dungeon)
-      player.draw(p, player)
+      list.each(enemies, enemy.draw(p, _))
       list.each(bullets, bullet.draw(p, _))
+      player.draw(p, player)
 
       // Render UI
       let hp_x = 22.0
@@ -146,12 +149,22 @@ fn draw(p: P5, state: WorldState, assets: Assets) {
   }
 }
 
+fn spawn_enemies(dungeon: dungeon.Dungeon) -> List(enemy.Enemy) {
+  let enemies_to_spawn = 4
+  use _ <- list.map(list.range(0, enemies_to_spawn - 1))
+
+  let position =
+    dungeon.get_location_to_place_object(dungeon.rooms, dungeon.pits)
+  enemy.new_enemy(position)
+}
+
 fn on_key_pressed(key: String, _: Int, state: WorldState) -> WorldState {
   case key, state {
     "r", _ -> StartScreen
     " ", StartScreen -> {
       let canvas_size = dungeon.total_size()
       let dungeon = dungeon.generate_dungeon()
+
       GameRunning(
         dungeon,
         player.new_player(vector.Vector(
@@ -160,41 +173,47 @@ fn on_key_pressed(key: String, _: Int, state: WorldState) -> WorldState {
           0.0,
         )),
         [],
+        spawn_enemies(dungeon),
         0,
       )
     }
-    " ", GameRunning(dungeon, player, bullets, score) ->
+    " ", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.jump(player),
         score: score,
       )
-    "w", GameRunning(dungeon, player, bullets, score) ->
+    "w", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.accelerate_y(player, False),
         score: score,
       )
-    "s", GameRunning(dungeon, player, bullets, score) ->
+    "s", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.accelerate_y(player, True),
         score: score,
       )
-    "a", GameRunning(dungeon, player, bullets, score) ->
+    "a", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.accelerate_x(player, False),
         score: score,
       )
-    "d", GameRunning(dungeon, player, bullets, score) ->
+    "d", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.accelerate_x(player, True),
         score: score,
       )
@@ -204,31 +223,35 @@ fn on_key_pressed(key: String, _: Int, state: WorldState) -> WorldState {
 
 fn on_key_released(key: String, _: Int, state: WorldState) -> WorldState {
   case key, state {
-    "w", GameRunning(dungeon, player, bullets, score) ->
+    "w", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.stop_y(player),
         score: score,
       )
-    "s", GameRunning(dungeon, player, bullets, score) ->
+    "s", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.stop_y(player),
         score: score,
       )
-    "a", GameRunning(dungeon, player, bullets, score) ->
+    "a", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.stop_x(player),
         score: score,
       )
-    "d", GameRunning(dungeon, player, bullets, score) ->
+    "d", GameRunning(dungeon, player, bullets, enemies, score) ->
       GameRunning(
         dungeon: dungeon,
         bullets: bullets,
+        enemies: enemies,
         player: player.stop_x(player),
         score: score,
       )
@@ -238,7 +261,7 @@ fn on_key_released(key: String, _: Int, state: WorldState) -> WorldState {
 
 fn on_mouse_clicked(x: Float, y: Float, state: WorldState) -> WorldState {
   case state {
-    GameRunning(dungeon, player, bullets, score) -> {
+    GameRunning(dungeon, player, bullets, enemies, score) -> {
       use <- bool.guard(!player.can_player_fire(player), state)
 
       let firing_direction =
@@ -257,6 +280,7 @@ fn on_mouse_clicked(x: Float, y: Float, state: WorldState) -> WorldState {
           ),
           ..bullets
         ],
+        enemies: enemies,
         player: player.Player(
           ..player,
           last_fire_time: utils.now_in_milliseconds(),
@@ -270,7 +294,7 @@ fn on_mouse_clicked(x: Float, y: Float, state: WorldState) -> WorldState {
 
 fn on_tick(state: WorldState) -> WorldState {
   case state {
-    GameRunning(dungeon, player, bullets, score) -> {
+    GameRunning(dungeon, player, bullets, enemies, score) -> {
       // Attempt to move player
       let old_position = player.position
       let moved = player.move(player)
@@ -345,6 +369,7 @@ fn on_tick(state: WorldState) -> WorldState {
         dungeon: dungeon,
         player: player,
         bullets: bullets,
+        enemies: enemies,
         score: score,
       )
     }
