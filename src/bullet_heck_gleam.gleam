@@ -440,13 +440,32 @@ fn on_tick(state: WorldState) -> WorldState {
 
       use <- bool.guard(player.is_player_dead(player), GameOver(False, score))
 
-      GameRunning(
-        dungeon: dungeon,
-        player: player,
-        bullets: bullets,
-        enemies: enemies,
-        score: score,
-      )
+      case enemies {
+        [] -> {
+          let canvas_size = dungeon.total_size()
+          let dungeon = dungeon.generate_dungeon()
+
+          GameRunning(
+            dungeon,
+            player.new_player(vector.Vector(
+              canvas_size /. 2.0,
+              canvas_size /. 2.0,
+              0.0,
+            )),
+            [],
+            spawn_enemies(dungeon),
+            score,
+          )
+        }
+        _ ->
+          GameRunning(
+            dungeon: dungeon,
+            player: player,
+            bullets: bullets,
+            enemies: enemies,
+            score: score,
+          )
+      }
     }
     _ -> state
   }
