@@ -1,6 +1,7 @@
 import behavior_tree/behavior_tree.{
   type BehaviorTree, BehaviorInput, BehaviorResult,
 }
+import gleam/list
 import startest.{describe, it}
 import startest/expect
 
@@ -17,9 +18,9 @@ pub fn behavior_tree_tests() {
     let BehaviorInput(entity, i) = input
     BehaviorResult(False, entity + i, 0)
   }
-  let add_n_and_store_prev_tree: BehaviorTree(Int, Int, Int) = fn(input) {
+  let add_n_and_output_prev_tree: BehaviorTree(Int, Int, List(Int)) = fn(input) {
     let BehaviorInput(entity, i) = input
-    BehaviorResult(True, entity + i, entity)
+    BehaviorResult(True, entity + i, [entity])
   }
 
   describe("behavior_tree", [
@@ -52,6 +53,7 @@ pub fn behavior_tree_tests() {
           ],
           1,
           fn(i, _) { i },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_true(result)
       expect.to_equal(e, 3)
@@ -61,6 +63,7 @@ pub fn behavior_tree_tests() {
           [failing_add_n_tree, failing_add_n_tree, failing_add_n_tree],
           1,
           fn(i, _) { i },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_false(result)
       expect.to_equal(e, 3)
@@ -68,13 +71,17 @@ pub fn behavior_tree_tests() {
       let BehaviorResult(result, e, _) =
         behavior_tree.selector(
           [
-            behavior_tree.not(add_n_and_store_prev_tree),
-            behavior_tree.not(add_n_and_store_prev_tree),
-            behavior_tree.not(add_n_and_store_prev_tree),
-            add_n_and_store_prev_tree,
+            behavior_tree.not(add_n_and_output_prev_tree),
+            behavior_tree.not(add_n_and_output_prev_tree),
+            behavior_tree.not(add_n_and_output_prev_tree),
+            add_n_and_output_prev_tree,
           ],
-          1,
-          fn(i, a) { i + a },
+          [],
+          fn(i, a) {
+            let assert Ok(a) = list.first(a)
+            i + a
+          },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_true(result)
       expect.to_equal(e, 8)
@@ -85,6 +92,7 @@ pub fn behavior_tree_tests() {
           [add_n_tree, failing_add_n_tree, add_n_tree, identity_tree],
           1,
           fn(i, _) { i },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_false(result)
       expect.to_equal(e, 2)
@@ -94,23 +102,72 @@ pub fn behavior_tree_tests() {
           [add_n_tree, add_n_tree, add_n_tree, identity_tree],
           1,
           fn(i, _) { i },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_true(result)
       expect.to_equal(e, 3)
 
-      let BehaviorResult(result, e, _) =
+      let BehaviorResult(result, e, a) =
         behavior_tree.sequence(
           [
-            add_n_and_store_prev_tree,
-            add_n_and_store_prev_tree,
-            add_n_and_store_prev_tree,
-            add_n_and_store_prev_tree,
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
           ],
-          1,
-          fn(i, a) { i + a },
+          [],
+          fn(i, a) {
+            let assert Ok(a) = list.first(a)
+            i + a
+          },
+          fn(_, o) { o },
         )(BehaviorInput(0, 1))
       expect.to_be_true(result)
       expect.to_equal(e, 8)
+      expect.to_equal(a, [])
+
+      let BehaviorResult(result, e, a) =
+        behavior_tree.sequence(
+          [
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+          ],
+          [],
+          fn(i, _) { i },
+          list.append,
+        )(BehaviorInput(0, 1))
+      expect.to_be_true(result)
+      expect.to_equal(e, 4)
+      expect.to_equal(a, [0, 1, 2, 3])
+    }),
+    it("all", fn() {
+      let BehaviorResult(result, e, _) =
+        behavior_tree.all(
+          [add_n_tree, failing_add_n_tree, add_n_tree, identity_tree],
+          1,
+          fn(i, _) { i },
+          fn(_, o) { o },
+        )(BehaviorInput(0, 1))
+      expect.to_be_true(result)
+      expect.to_equal(e, 3)
+
+      let BehaviorResult(result, e, a) =
+        behavior_tree.all(
+          [
+            add_n_and_output_prev_tree,
+            behavior_tree.not(add_n_and_output_prev_tree),
+            add_n_and_output_prev_tree,
+            add_n_and_output_prev_tree,
+          ],
+          [],
+          fn(i, _) { i },
+          list.append,
+        )(BehaviorInput(0, 1))
+      expect.to_be_true(result)
+      expect.to_equal(e, 4)
+      expect.to_equal(a, [0, 1, 2, 3])
     }),
   ])
 }

@@ -53,6 +53,7 @@ pub fn selector(
   default_output: additional_outputs,
   output_to_input: fn(additional_inputs, additional_outputs) ->
     additional_inputs,
+  output_merge: fn(additional_outputs, additional_outputs) -> additional_outputs,
 ) -> BehaviorTree(entity, additional_inputs, additional_outputs) {
   case btrees {
     [] -> fn(input: BehaviorInput(entity, additional_inputs)) {
@@ -63,16 +64,36 @@ pub fn selector(
       )
     }
     [bt, ..rest] -> fn(input: BehaviorInput(entity, additional_inputs)) {
-      let BehaviorResult(success: success, entity: e, additional_outputs: a) =
-        bt(input)
+      let BehaviorResult(
+        success: success,
+        entity: e,
+        additional_outputs: first_behavior_outputs,
+      ) = bt(input)
 
       case success {
-        True -> BehaviorResult(success: True, entity: e, additional_outputs: a)
-        False ->
-          selector(rest, a, output_to_input)(BehaviorInput(
+        True ->
+          BehaviorResult(
+            success: True,
             entity: e,
-            additional_inputs: output_to_input(input.additional_inputs, a),
-          ))
+            additional_outputs: first_behavior_outputs,
+          )
+        False -> {
+          let next_input =
+            BehaviorInput(
+              entity: e,
+              additional_inputs: output_to_input(
+                input.additional_inputs,
+                first_behavior_outputs,
+              ),
+            )
+          let BehaviorResult(success, e, rest_outputs) =
+            selector(rest, default_output, output_to_input, output_merge)(
+              next_input,
+            )
+          let final_outputs = output_merge(first_behavior_outputs, rest_outputs)
+
+          BehaviorResult(success, e, final_outputs)
+        }
       }
     }
   }
@@ -85,6 +106,7 @@ pub fn sequence(
   default_output: additional_outputs,
   output_to_input: fn(additional_inputs, additional_outputs) ->
     additional_inputs,
+  output_merge: fn(additional_outputs, additional_outputs) -> additional_outputs,
 ) -> BehaviorTree(entity, additional_inputs, additional_outputs) {
   case btrees {
     [] -> fn(input: BehaviorInput(entity, additional_inputs)) {
@@ -95,18 +117,79 @@ pub fn sequence(
       )
     }
     [bt, ..rest] -> fn(input: BehaviorInput(entity, additional_inputs)) {
-      let BehaviorResult(success: success, entity: e, additional_outputs: a) =
-        bt(input)
+      let BehaviorResult(
+        success: success,
+        entity: e,
+        additional_outputs: first_behavior_outputs,
+      ) = bt(input)
 
       case success {
         False ->
-          BehaviorResult(success: False, entity: e, additional_outputs: a)
-        True ->
-          sequence(rest, a, output_to_input)(BehaviorInput(
+          BehaviorResult(
+            success: False,
             entity: e,
-            additional_inputs: output_to_input(input.additional_inputs, a),
-          ))
+            additional_outputs: output_merge(
+              default_output,
+              first_behavior_outputs,
+            ),
+          )
+        True -> {
+          let next_input =
+            BehaviorInput(
+              entity: e,
+              additional_inputs: output_to_input(
+                input.additional_inputs,
+                first_behavior_outputs,
+              ),
+            )
+          let BehaviorResult(success, e, rest_outputs) =
+            sequence(rest, default_output, output_to_input, output_merge)(
+              next_input,
+            )
+          let final_outputs = output_merge(first_behavior_outputs, rest_outputs)
+
+          BehaviorResult(success, e, final_outputs)
+        }
       }
+    }
+  }
+}
+
+/// Creates a behavior tree that performs all the given behavior trees and always succeeds.
+pub fn all(
+  btrees: List(BehaviorTree(entity, additional_inputs, additional_outputs)),
+  default_output: additional_outputs,
+  output_to_input: fn(additional_inputs, additional_outputs) ->
+    additional_inputs,
+  output_merge: fn(additional_outputs, additional_outputs) -> additional_outputs,
+) -> BehaviorTree(entity, additional_inputs, additional_outputs) {
+  case btrees {
+    [] -> fn(input: BehaviorInput(entity, additional_inputs)) {
+      BehaviorResult(
+        success: True,
+        entity: input.entity,
+        additional_outputs: default_output,
+      )
+    }
+    [bt, ..rest] -> fn(input: BehaviorInput(entity, additional_inputs)) {
+      let BehaviorResult(
+        success: _,
+        entity: e,
+        additional_outputs: first_behavior_outputs,
+      ) = bt(input)
+      let next_input =
+        BehaviorInput(
+          entity: e,
+          additional_inputs: output_to_input(
+            input.additional_inputs,
+            first_behavior_outputs,
+          ),
+        )
+      let BehaviorResult(success, e, rest_outputs) =
+        all(rest, default_output, output_to_input, output_merge)(next_input)
+      let final_outputs = output_merge(first_behavior_outputs, rest_outputs)
+
+      BehaviorResult(success, e, final_outputs)
     }
   }
 }
