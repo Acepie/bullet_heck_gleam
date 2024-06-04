@@ -1,3 +1,4 @@
+import behavior_tree/behavior_tree
 import bullet
 import dungeon
 import enemy
@@ -337,8 +338,15 @@ fn on_tick(state: WorldState) -> WorldState {
         list.fold(enemies, #([], bullets, player, score), fn(acc, e) {
           let #(enemies, bullets, player, score) = acc
           // Apply behavior to enemy
-          let enemy.BehaviorResult(_, enemy, new_bullets) =
-            e.btree(enemy.BehaviorInput(e, enemies, dungeon, player))
+          let behavior_tree.BehaviorResult(
+            _,
+            enemy,
+            enemy.AdditionalOutputs(new_bullets),
+          ) =
+            e.btree(behavior_tree.BehaviorInput(
+              e,
+              enemy.Inputs(enemies, dungeon, player),
+            ))
 
           let bullets = list.append(new_bullets, bullets)
 

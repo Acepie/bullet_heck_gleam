@@ -1,11 +1,14 @@
+import behavior_tree/behavior_tree
 import enemy.{type Enemy, Enemy}
 import startest.{describe, it}
 import startest/expect
 import vector.{Vector}
 
-fn dummy_btree(i: enemy.BehaviorInput) -> enemy.BehaviorResult {
-  let enemy.BehaviorInput(e, _, _, _) = i
-  enemy.BehaviorResult(True, e, [])
+fn dummy_btree(
+  i: behavior_tree.BehaviorInput(Enemy, enemy.Inputs),
+) -> behavior_tree.BehaviorResult(Enemy, enemy.AdditionalOutputs) {
+  let behavior_tree.BehaviorInput(e, _) = i
+  behavior_tree.BehaviorResult(True, e, enemy.AdditionalOutputs(bullets: []))
 }
 
 pub fn enemy_tests() {

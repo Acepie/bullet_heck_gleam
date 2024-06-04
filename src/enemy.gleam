@@ -1,3 +1,4 @@
+import behavior_tree/behavior_tree
 import bullet.{type Bullet}
 import dungeon.{type Dungeon}
 import gleam/float
@@ -19,11 +20,9 @@ pub const value = 100
 const max_enemy_health = 80
 
 /// Represents the input data needed for an enemy to update.
-pub type BehaviorInput {
+pub type Inputs {
   /// Represents the input data needed for an enemy to update.
-  BehaviorInput(
-    /// The enemy being updated.
-    enemy: Enemy,
+  Inputs(
     /// All enemies in the game.
     enemies: List(Enemy),
     /// The dungeon the enemy is in.
@@ -33,14 +32,10 @@ pub type BehaviorInput {
   )
 }
 
-/// Represents the result of an enemy update.
-pub type BehaviorResult {
-  /// Represents the result of an enemy update.
-  BehaviorResult(
-    /// Whether the action can continue
-    success: Bool,
-    /// The updated enemy.
-    enemy: Enemy,
+/// Represents the additional outputs from updating an enemy..
+pub type AdditionalOutputs {
+  /// Represents the additional outputs from updating an enemy.
+  AdditionalOutputs(
     /// Any bullets that were fired by the enemy.
     bullets: List(Bullet),
   )
@@ -48,7 +43,7 @@ pub type BehaviorResult {
 
 /// Represents a function that given world information and an enemy updates the enemy.
 pub type BehaviorTree =
-  fn(BehaviorInput) -> BehaviorResult
+  behavior_tree.BehaviorTree(Enemy, Inputs, AdditionalOutputs)
 
 /// Represents an enemy to defeat.
 pub type Enemy {
@@ -79,8 +74,8 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
     max_health: max_enemy_health,
     // TODO: actually make a behavior
     btree: fn(i) {
-      let BehaviorInput(e, _, _, _) = i
-      BehaviorResult(True, e, [])
+      let behavior_tree.BehaviorInput(e, _) = i
+      behavior_tree.BehaviorResult(True, e, AdditionalOutputs(bullets: []))
     },
   )
 }
