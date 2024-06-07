@@ -179,6 +179,69 @@ pub fn dungeon_tests() {
 
       Nil
     }),
+    it("get_reflecting_point", fn() {
+      let rooms =
+        dict.new()
+        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+        |> dict.insert(
+          #(2, 1),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Bottom, True),
+        )
+        |> dict.insert(
+          #(2, 2),
+          room.initialize_unbounded_room()
+            |> room.set_navigable(room.Top, True),
+        )
+      let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
+
+      // to out of bounds
+      expect.to_be_error(dungeon.get_reflecting_point(
+        dungeon,
+        vector.Vector(0.0, 0.0, 0.0),
+        vector.Vector(10_000.0, 0.0, 0.0),
+      ))
+      // from and to not real rooms
+      expect.to_be_error(dungeon.get_reflecting_point(
+        dungeon,
+        vector.Vector(0.0, 0.0, 0.0),
+        vector.Vector(0.0, 0.0, 0.0),
+      ))
+      // from and to are navigable
+      expect.to_be_error(dungeon.get_reflecting_point(
+        dungeon,
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 2.5,
+          int.to_float(dungeon.room_size) *. 1.5,
+          0.0,
+        ),
+        vector.Vector(
+          int.to_float(dungeon.room_size) *. 2.5,
+          int.to_float(dungeon.room_size) *. 2.5,
+          0.0,
+        ),
+      ))
+      // from and to blocked by wall
+      expect.to_equal(
+        Ok(room.Top),
+        dungeon.get_reflecting_point(
+          dungeon,
+          vector.Vector(
+            int.to_float(dungeon.room_size) *. 1.5,
+            int.to_float(dungeon.room_size) *. 1.5,
+            0.0,
+          ),
+          vector.Vector(
+            int.to_float(dungeon.room_size) *. 1.5,
+            int.to_float(dungeon.room_size) *. 2.5,
+            0.0,
+          ),
+        ),
+      )
+
+      Nil
+    }),
     it("is_over_pit", fn() {
       let rooms =
         dict.new()

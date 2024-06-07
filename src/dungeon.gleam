@@ -467,3 +467,32 @@ pub fn is_over_pit(dungeon: Dungeon, position: vector.Vector) -> Bool {
   use pit <- list.any(dungeon.pits)
   vector.distance(pit.position, position) <. pit.size
 }
+
+/// Checks if going from 1 point to another hits a wall. If it does then return the direction away from the wall.
+pub fn get_reflecting_point(
+  dungeon: Dungeon,
+  from: vector.Vector,
+  to: vector.Vector,
+) -> Result(room.Direction, Nil) {
+  // Note: the implementation for this is almost but not quite the same as can_move
+  // Can't move out of bounds
+  use <- bool.guard(point_out_of_bounds(to), Error(Nil))
+
+  // Find the coordinates that correspond to the start and end points
+  let from_coordinate = point_to_coordinate(from)
+  let to_coordinate = point_to_coordinate(to)
+
+  // Check that the start and end are both rooms
+  let from_room = dict.get(dungeon.rooms, from_coordinate)
+  let to_room = dict.get(dungeon.rooms, to_coordinate)
+
+  case from_room, to_room {
+    Ok(from), Ok(_) -> {
+      // Check that there is no wall blocking the rooms
+      use dir <- result.try(coordinate_direction(from_coordinate, to_coordinate))
+      use <- bool.guard(room.is_navigable(from, dir), Error(Nil))
+      Ok(room.inverse_direction(dir))
+    }
+    _, _ -> Error(Nil)
+  }
+}

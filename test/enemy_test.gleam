@@ -2,6 +2,7 @@ import behavior_tree/behavior_tree
 import dungeon
 import enemy.{type Enemy, Enemy}
 import gleam/dict
+import gleam/iterator
 import player
 import room
 import startest.{describe, it}
@@ -31,6 +32,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, 0.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -45,6 +47,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, -1.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -61,6 +64,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, 0.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -76,6 +80,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, 0.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -89,6 +94,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, -1.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 0,
           max_health: 100,
           path: [],
@@ -104,6 +110,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, 0.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -118,6 +125,7 @@ pub fn enemy_tests() {
           position: Vector(0.0, 0.0, 0.0),
           velocity: vector.Vector(0.0, 0.0, 1.0),
           rotation: 0.0,
+          rotational_velocity: 0.0,
           current_health: 100,
           max_health: 100,
           path: [],
@@ -144,6 +152,22 @@ pub fn enemy_tests() {
       #(2, 2),
       room.initialize_unbounded_room()
         |> room.set_navigable(room.Top, True),
+    )
+    |> dict.insert(
+      #(4, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Bottom, True)
+        |> room.set_navigable(room.Right, True),
+    )
+    |> dict.insert(
+      #(4, 2),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Top, True),
+    )
+    |> dict.insert(
+      #(5, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Left, True),
     )
   let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
 
@@ -191,7 +215,8 @@ pub fn enemy_tests() {
       expect.to_equal(out_enemy, enemy)
     }),
     it("random_path_behavior", fn() {
-      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+      // This enemy can only go up so their target will always be up
+      let enemy = enemy.new_enemy(Vector(250.0, 150.0, 0.0))
 
       let behavior_tree.BehaviorResult(success, out_enemy, _) =
         enemy.random_path_behavior(behavior_tree.BehaviorInput(
@@ -199,8 +224,26 @@ pub fn enemy_tests() {
           enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
         ))
       expect.to_be_true(success)
-      expect.to_not_equal(out_enemy.path, [])
+      expect.to_equal(out_enemy.path, [Vector(250.0, 250.0, 0.0)])
       expect.to_not_equal(out_enemy.last_path_updated, 0)
+
+      {
+        use <- iterator.repeatedly
+        // This enemy can go multiple different directions
+        let enemy = enemy.new_enemy(Vector(450.0, 150.0, 0.0))
+
+        let behavior_tree.BehaviorResult(success, out_enemy, _) =
+          enemy.random_path_behavior(behavior_tree.BehaviorInput(
+            enemy,
+            enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+          ))
+        expect.to_be_true(success)
+        expect.to_not_equal(out_enemy.path, [])
+        expect.to_not_equal(out_enemy.last_path_updated, 0)
+      }
+      |> iterator.take(10)
+
+      Nil
     }),
   ])
 }
