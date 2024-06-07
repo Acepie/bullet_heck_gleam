@@ -42,10 +42,12 @@ const obstacle_rate = 0.5
 
 const obstacle_limit = 3
 
-type Coordinate =
+/// Represents the column and row a room is in.
+pub type Coordinate =
   #(Int, Int)
 
-type Rooms =
+/// Represents all the real rooms that are in a dungeon.
+pub type Rooms =
   Dict(Coordinate, room.Room)
 
 /// Represents the dungeon and all its hazards.
@@ -361,8 +363,8 @@ fn get_random_point_in_room(rooms: Rooms) -> vector.Vector {
   }
 }
 
-// Given a coordinate find the center point of the room.
-fn coordinate_to_point(coordinate: Coordinate) -> vector.Vector {
+/// Given a coordinate find the center point of the room.
+pub fn coordinate_to_point(coordinate: Coordinate) -> vector.Vector {
   let x =
     int.to_float(coordinate.0 * room_size) +. int.to_float(room_size) /. 2.0
   let y =

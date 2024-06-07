@@ -1,11 +1,16 @@
 import behavior_tree/behavior_tree
 import bullet.{type Bullet}
 import dungeon.{type Dungeon}
+import gleam/dict
 import gleam/float
+import gleam/list
 import gleam_community/maths/elementary
 import p5js_gleam.{type P5}
 import p5js_gleam/bindings as p5
 import player.{type Player}
+import prng/random
+import room
+import utils
 import vector.{type Vector}
 
 /// The size of an enemy in pixels.
@@ -41,9 +46,82 @@ pub type AdditionalOutputs {
   )
 }
 
+type BehaviorInput =
+  behavior_tree.BehaviorInput(Enemy, Inputs)
+
+type BehaviorResult =
+  behavior_tree.BehaviorResult(Enemy, AdditionalOutputs)
+
 /// Represents a function that given world information and an enemy updates the enemy.
 pub type BehaviorTree =
   behavior_tree.BehaviorTree(Enemy, Inputs, AdditionalOutputs)
+
+// Attempt to find a valid random direction from the given coordinate.
+// Returns the coordinate in the valid direction.
+fn random_direction(
+  coordinate: dungeon.Coordinate,
+  rooms: dungeon.Rooms,
+) -> dungeon.Coordinate {
+  let dir = random.int(0, 8) |> random.random_sample
+  let dir = case dir {
+    0 -> room.Left
+    1 -> room.Right
+    2 -> room.Top
+    3 -> room.Bottom
+    4 -> room.TopLeft
+    5 -> room.TopRight
+    6 -> room.BottomLeft
+    _ -> room.BottomRight
+  }
+
+  let #(col, row) = coordinate
+
+  let new_coordinate = dungeon.next_room_indices(col, row, dir)
+  case dict.has_key(rooms, new_coordinate) {
+    True -> new_coordinate
+    False -> random_direction(coordinate, rooms)
+  }
+}
+
+// NOTE: I'm making all the enemy behaviors that are worth testing public because testing behaviors would probably be unreasonably complex and brittle
+
+// Behavior that just succeeds if the enemy has a non-empty path.
+pub fn has_path_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+  behavior_tree.BehaviorResult(enemy.path != [], enemy, AdditionalOutputs([]))
+}
+
+// Behavior that just succeeds if the enemy has not updated their path in a while.
+pub fn path_is_stale_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+  behavior_tree.BehaviorResult(
+    enemy.last_path_updated + 1000 < utils.now_in_milliseconds(),
+    enemy,
+    AdditionalOutputs([]),
+  )
+}
+
+// Finds a random nearby coordinate and sets the enemy's path to that location.
+// Always succeeds.
+pub fn random_path_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: inputs) =
+    inputs
+
+  // Create a new path by finding a random room that can be moved to.
+  let path = [
+    // Get the current room
+    dungeon.point_to_coordinate(enemy.position)
+    // Get a random adjacent room
+    |> random_direction(inputs.dungeon.rooms)
+    // Turn it into a point for the path
+    |> dungeon.coordinate_to_point,
+  ]
+
+  let enemy =
+    Enemy(..enemy, path: path, last_path_updated: utils.now_in_milliseconds())
+
+  behavior_tree.BehaviorResult(True, enemy, AdditionalOutputs([]))
+}
 
 /// Represents an enemy to defeat.
 pub type Enemy {
@@ -59,6 +137,10 @@ pub type Enemy {
     current_health: Int,
     /// Enemy's max hit points.
     max_health: Int,
+    /// The current path the enemy is on.
+    path: List(Vector),
+    /// The last time the path was updated.
+    last_path_updated: Int,
     /// The behavior that an enemy will follow on each tick.
     btree: BehaviorTree,
   )
@@ -66,17 +148,51 @@ pub type Enemy {
 
 /// Makes a new enemy.
 pub fn new_enemy(initial_position: Vector) -> Enemy {
+  let default_output = AdditionalOutputs([])
+  let output_to_input = fn(i, _) { i }
+  let output_merge = fn(old: AdditionalOutputs, new: AdditionalOutputs) {
+    AdditionalOutputs(list.append(old.bullets, new.bullets))
+  }
+
+  let sequence = behavior_tree.sequence(
+    _,
+    default_output,
+    output_to_input,
+    output_merge,
+  )
+  let selector = behavior_tree.selector(
+    _,
+    default_output,
+    output_to_input,
+    output_merge,
+  )
+
   Enemy(
     position: initial_position,
     rotation: 0.0,
     velocity: vector.Vector(0.0, 0.0, 0.0),
     current_health: max_enemy_health,
     max_health: max_enemy_health,
+    path: [],
+    last_path_updated: 0,
     // TODO: actually make a behavior
-    btree: fn(i) {
-      let behavior_tree.BehaviorInput(e, _) = i
-      behavior_tree.BehaviorResult(True, e, AdditionalOutputs(bullets: []))
-    },
+    btree: behavior_tree.all(
+      [
+        // Update the enemy's path
+        selector([
+          sequence([
+            selector([
+              behavior_tree.not(has_path_behavior),
+              path_is_stale_behavior,
+            ]),
+            random_path_behavior,
+          ]),
+        ]),
+      ],
+      default_output,
+      output_to_input,
+      output_merge,
+    ),
   )
 }
 
