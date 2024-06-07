@@ -37,6 +37,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         )
         |> enemy.apply_gravity
@@ -52,6 +53,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         )
         |> enemy.apply_gravity
@@ -69,6 +71,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         )
         |> enemy.apply_damage(20)
@@ -85,6 +88,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
@@ -99,6 +103,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
@@ -115,6 +120,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         ),
         Vector(10.0, 0.0, 0.0),
@@ -130,6 +136,7 @@ pub fn enemy_tests() {
           max_health: 100,
           path: [],
           last_path_updated: 0,
+          spotted_player: False,
           btree: dummy_btree,
         ),
         Vector(0.0, 0.0, 0.0),
@@ -167,7 +174,20 @@ pub fn enemy_tests() {
     |> dict.insert(
       #(5, 1),
       room.initialize_unbounded_room()
-        |> room.set_navigable(room.Left, True),
+        |> room.set_navigable(room.Left, True)
+        |> room.set_navigable(room.Right, True),
+    )
+    |> dict.insert(
+      #(6, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Left, True)
+        |> room.set_navigable(room.Bottom, True),
+    )
+    |> dict.insert(
+      #(6, 2),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Left, True)
+        |> room.set_navigable(room.Top, True),
     )
   let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
 
@@ -244,6 +264,128 @@ pub fn enemy_tests() {
       |> iterator.take(10)
 
       Nil
+    }),
+    it("in_range_of_player_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(150.0, 150.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_range_of_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(150.0, 150.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = enemy.new_enemy(Vector(110.0, 150.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_range_of_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(190.0, 150.0, 0.0)),
+          ),
+        ))
+      expect.to_be_false(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = enemy.new_enemy(Vector(250.0, 190.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_range_of_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(250.0, 210.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = enemy.new_enemy(Vector(150.0, 190.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_range_of_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(150.0, 210.0, 0.0)),
+          ),
+        ))
+      expect.to_be_false(success)
+      expect.to_equal(out_enemy, enemy)
+    }),
+    it("spot_player_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.spot_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+        ))
+      expect.to_be_true(success)
+      expect.to_be_true(out_enemy.spotted_player)
+    }),
+    it("spotted_player_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.spotted_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+        ))
+      expect.to_be_false(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = Enemy(..enemy, spotted_player: True)
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.spotted_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy, enemy)
+    }),
+    it("path_to_player_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(150.0, 150.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.path_to_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(150.0, 150.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy.path, enemy.path)
+
+      let enemy = enemy.new_enemy(Vector(450.0, 250.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.path_to_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(650.0, 250.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy.path, [
+        Vector(450.0, 150.0, 0.0),
+        Vector(550.0, 150.0, 0.0),
+        Vector(650.0, 150.0, 0.0),
+      ])
     }),
   ])
 }

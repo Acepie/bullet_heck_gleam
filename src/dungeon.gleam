@@ -4,10 +4,12 @@ import gleam/float
 import gleam/int
 import gleam/iterator
 import gleam/list
+import gleam/option
 import gleam/result
 import obstacle.{type Obstacle}
 import p5js_gleam.{type P5}
 import pit.{type Pit}
+import priorityq
 import prng/random
 import room
 import vector
@@ -494,5 +496,102 @@ pub fn get_reflecting_point(
       Ok(room.inverse_direction(dir))
     }
     _, _ -> Error(Nil)
+  }
+}
+
+type CoordinateEntry =
+  #(Coordinate, Float, option.Option(Coordinate))
+
+/// Gets a path from 1 point to another in a dungeon
+pub fn path_to(
+  dungeon: Dungeon,
+  from: vector.Vector,
+  to: vector.Vector,
+) -> List(vector.Vector) {
+  let start = point_to_coordinate(from)
+  let initial_entry = #(start, 0.0, option.None)
+  path_to_helper(
+    dungeon,
+    point_to_coordinate(to),
+    priorityq.new(fn(a: CoordinateEntry, b: CoordinateEntry) {
+      float.compare(b.1, a.1)
+    })
+      |> priorityq.push(initial_entry),
+    dict.from_list([#(start, initial_entry)]),
+  )
+}
+
+fn path_to_helper(
+  dungeon: Dungeon,
+  to: Coordinate,
+  worklist: priorityq.PriorityQueue(CoordinateEntry),
+  seen_so_far: dict.Dict(Coordinate, CoordinateEntry),
+) -> List(vector.Vector) {
+  use <- bool.guard(priorityq.is_empty(worklist), [])
+
+  let assert option.Some(#(t, cost, _)) = priorityq.peek(worklist)
+  let worklist = priorityq.pop(worklist)
+
+  case t == to {
+    True -> list.reverse(path_from_costs(seen_so_far, to))
+    False -> {
+      let #(worklist, seen_so_far) =
+        [
+          room.Left,
+          room.Right,
+          room.Top,
+          room.Bottom,
+          room.TopLeft,
+          room.TopRight,
+          room.BottomLeft,
+          room.BottomRight,
+        ]
+        |> list.fold(#(worklist, seen_so_far), fn(acc, dir) {
+          let #(worklist, seen_so_far) = acc
+          let assert Ok(to_room) = dict.get(dungeon.rooms, t)
+          case room.is_navigable(to_room, dir) {
+            False -> #(worklist, seen_so_far)
+            True -> {
+              let next = next_room_indices(t.0, t.1, dir)
+              let next_cost =
+                cost
+                +. vector.distance(
+                  vector.Vector(int.to_float(next.0), int.to_float(next.1), 0.0),
+                  vector.Vector(int.to_float(to.0), int.to_float(to.1), 0.0),
+                )
+
+              case dict.get(seen_so_far, next) {
+                // we have a better path do not traverse
+                Ok(#(_, old_best, _)) if old_best <. next_cost -> #(
+                  worklist,
+                  seen_so_far,
+                )
+                _ -> #(
+                  worklist
+                    |> priorityq.push(#(next, next_cost, option.Some(t))),
+                  seen_so_far
+                    |> dict.insert(next, #(next, next_cost, option.Some(t))),
+                )
+              }
+            }
+          }
+        })
+
+      path_to_helper(dungeon, to, worklist, seen_so_far)
+    }
+  }
+}
+
+fn path_from_costs(
+  seen_so_far: dict.Dict(Coordinate, CoordinateEntry),
+  end: Coordinate,
+) -> List(vector.Vector) {
+  let assert Ok(#(_, _, prev)) = dict.get(seen_so_far, end)
+  case prev {
+    option.None -> []
+    option.Some(prev) -> [
+      coordinate_to_point(end),
+      ..path_from_costs(seen_so_far, prev)
+    ]
   }
 }

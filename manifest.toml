@@ -19,6 +19,7 @@ packages = [
   { name = "gleam_stdlib", version = "0.38.0", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "663CF11861179AF415A625307447775C09404E752FF99A24E2057C835319F1BE" },
   { name = "glint", version = "1.0.0-rc2", build_tools = ["gleam"], requirements = ["gleam_community_ansi", "gleam_community_colour", "gleam_stdlib", "snag"], otp_app = "glint", source = "hex", outer_checksum = "FD5C47CE237CA67121F3946ADE7C630750BB67F5E8A4717D2DF5B5EE758CCFDB" },
   { name = "p5js_gleam", version = "2.1.2", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "p5js_gleam", source = "hex", outer_checksum = "6280E50C5CF893BA84B6A2D82A3EA83BB764EA7F3509CA22BB12326D01283F85" },
+  { name = "priorityq", version = "0.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "priorityq", source = "hex", outer_checksum = "979D1654394E48CCB1F2758F4783ED1E36274F007CCC6A8C1BB5D2492889102D" },
   { name = "prng", version = "3.0.3", build_tools = ["gleam"], requirements = ["gleam_bitwise", "gleam_stdlib"], otp_app = "prng", source = "hex", outer_checksum = "53006736FE23A0F61828C95B505193E10905D8DB76E128F1642D3E571E08F589" },
   { name = "ranger", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "ranger", source = "hex", outer_checksum = "1566C272B1D141B3BBA38B25CB761EF56E312E79EC0E2DFD4D3C19FB0CC1F98C" },
   { name = "simplifile", version = "1.7.0", build_tools = ["gleam"], requirements = ["filepath", "gleam_stdlib"], otp_app = "simplifile", source = "hex", outer_checksum = "1D5DFA3A2F9319EC85825F6ED88B8E449F381B0D55A62F5E61424E748E7DDEB0" },
@@ -33,5 +34,6 @@ esgleam = { version = ">= 0.6.0 and < 1.0.0" }
 gleam_community_maths = { version = ">= 1.1.0 and < 2.0.0" }
 gleam_stdlib = { version = ">= 0.36.0 and < 2.0.0" }
 p5js_gleam = { version = ">= 2.1.2 and < 3.0.0" }
+priorityq = { version = ">= 0.1.0 and < 1.0.0"}
 prng = { version = ">= 3.0.2 and < 4.0.0" }
 startest = { version = ">= 0.2.1 and < 1.0.0" }

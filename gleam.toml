@@ -18,6 +18,7 @@ gleam_stdlib = ">= 0.36.0 and < 2.0.0"
 p5js_gleam = ">= 2.1.2 and < 3.0.0"
 prng = ">= 3.0.2 and < 4.0.0"
 gleam_community_maths = ">= 1.1.0 and < 2.0.0"
+priorityq = ">= 0.1.0 and < 1.0.0"
 
 [dev-dependencies]
 esgleam = ">= 0.6.0 and < 1.0.0"

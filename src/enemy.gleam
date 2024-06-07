@@ -2,7 +2,6 @@ import behavior_tree/behavior_tree
 import bullet.{type Bullet}
 import dungeon.{type Dungeon}
 import gleam/bool
-import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
@@ -184,6 +183,105 @@ pub fn follow_path_behavior(inputs: BehaviorInput) -> BehaviorResult {
   }
 }
 
+// Behavior that just succeeds if the enemy has line of sight and is in range of the player.
+pub fn in_range_of_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(
+    entity: enemy,
+    additional_inputs: Inputs(_, dungeon, player),
+  ) = inputs
+
+  use <- bool.guard(
+    vector.distance(enemy.position, player.position)
+      >. int.to_float(dungeon.room_size / 2),
+    behavior_tree.BehaviorResult(False, enemy, AdditionalOutputs([])),
+  )
+
+  behavior_tree.BehaviorResult(
+    dungeon.can_move(dungeon, enemy.position, player.position),
+    enemy,
+    AdditionalOutputs([]),
+  )
+}
+
+// Simple behavior that marks the player as spotted.
+pub fn spot_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+
+  behavior_tree.BehaviorResult(
+    True,
+    Enemy(..enemy, spotted_player: True),
+    AdditionalOutputs([]),
+  )
+}
+
+// Simple behavior that checks if the enemy spotted the player.
+pub fn spotted_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+
+  behavior_tree.BehaviorResult(
+    enemy.spotted_player,
+    enemy,
+    AdditionalOutputs([]),
+  )
+}
+
+// Behavior that set's the enemy's path to the player.
+// Always succeeds.
+pub fn path_to_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(
+    entity: enemy,
+    additional_inputs: Inputs(_, dungeon, player),
+  ) = inputs
+
+  let path = dungeon.path_to(dungeon, enemy.position, player.position)
+  // Drop last path entry because player is in that room
+  let path = path |> list.take(list.length(path) - 1)
+
+  let enemy =
+    Enemy(..enemy, path: path, last_path_updated: utils.now_in_milliseconds())
+
+  behavior_tree.BehaviorResult(True, enemy, AdditionalOutputs([]))
+}
+
+// Simple behavior that moves the enemy toward the spotted player.
+pub fn follow_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(
+    entity: enemy,
+    additional_inputs: Inputs(enemies, dungeon, player),
+  ) = inputs
+
+  let target = vector.vector_2d(player.position)
+  let whiskers =
+    create_whisker_points(enemy)
+    |> list.filter_map(dungeon.get_reflecting_point(dungeon, enemy.position, _))
+
+  let #(enemy, new_position) =
+    move_enemy(
+      enemy,
+      target,
+      dungeon.obstacles,
+      dungeon.pits,
+      enemies,
+      whiskers,
+    )
+  let new_position = case
+    dungeon.can_move(dungeon, enemy.position, new_position)
+  {
+    True -> new_position
+    False ->
+      // Apply downward velocity but don't move forward
+      vector.Vector(
+        enemy.position.x,
+        enemy.position.y,
+        enemy.position.z +. enemy.velocity.z,
+      )
+  }
+
+  let enemy = Enemy(..enemy, position: new_position) |> steer_enemy(target)
+
+  behavior_tree.BehaviorResult(True, enemy, AdditionalOutputs([]))
+}
+
 /// Represents an enemy to defeat.
 pub type Enemy {
   /// Represents an enemy to defeat.
@@ -204,6 +302,8 @@ pub type Enemy {
     path: List(Vector),
     /// The last time the path was updated.
     last_path_updated: Int,
+    /// Can the enemy currently see the player.
+    spotted_player: Bool,
     /// The behavior that an enemy will follow on each tick.
     btree: BehaviorTree,
   )
@@ -239,11 +339,15 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
     max_health: max_enemy_health,
     path: [],
     last_path_updated: 0,
+    spotted_player: False,
     // TODO: actually make a behavior
     btree: behavior_tree.all(
       [
+        // Look for player
+        sequence([in_range_of_player_behavior, spot_player_behavior]),
         // Update the enemy's path
         selector([
+          sequence([spotted_player_behavior, path_to_player_behavior]),
           sequence([
             selector([
               behavior_tree.not(has_path_behavior),
@@ -253,7 +357,10 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
           ]),
         ]),
         // Move the enemy
-        selector([sequence([has_path_behavior, follow_path_behavior])]),
+        selector([
+          sequence([has_path_behavior, follow_path_behavior]),
+          sequence([spotted_player_behavior, follow_player_behavior]),
+        ]),
       ],
       default_output,
       output_to_input,
