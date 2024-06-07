@@ -2,6 +2,10 @@
 
 A [gleam](https://gleam.run/) [rewrite](https://github.com/Acepie/GameAIBulletHell) of a bullet hell style game my friend and I made in college. The goal is mainly for myself to use gleam on a larger/more creative project. Uses [p5js bindings](https://github.com/Acepie/p5js_gleam) for running the project as a web game.
 
+![Screenshot 2024-06-07 104207](https://github.com/Acepie/bullet_heck_gleam/assets/5996838/a7da1f31-9264-4038-8678-54a439b53b49)
+
+![Screenshot 2024-06-07 104215](https://github.com/Acepie/bullet_heck_gleam/assets/5996838/eacdd48e-c28f-4f5b-9f52-d9d074f366c8)
+
 ## How To Play
 
 ### Controls
