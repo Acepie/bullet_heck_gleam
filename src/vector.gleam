@@ -91,3 +91,8 @@ pub fn rotate2d(v: Vector, rotation: Float) -> Vector {
   let mag = magnitude(vector_2d(v))
   Vector(elementary.cos(heading) *. mag, elementary.sin(heading) *. mag, v.z)
 }
+
+/// Create a vector around the z axis by the given amount in radians.
+pub fn from_angle2d(rotation: Float) -> Vector {
+  rotate2d(Vector(1.0, 0.0, 0.0), rotation)
+}

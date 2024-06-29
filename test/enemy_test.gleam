@@ -38,6 +38,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         )
         |> enemy.apply_gravity
@@ -54,6 +55,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         )
         |> enemy.apply_gravity
@@ -72,6 +74,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         )
         |> enemy.apply_damage(20)
@@ -89,6 +92,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
@@ -104,6 +108,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         )
         |> enemy.is_enemy_dead,
@@ -121,6 +126,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         ),
         Vector(10.0, 0.0, 0.0),
@@ -137,6 +143,7 @@ pub fn enemy_tests() {
           path: [],
           last_path_updated: 0,
           spotted_player: False,
+          last_bullet_fired: 0,
           btree: dummy_btree,
         ),
         Vector(0.0, 0.0, 0.0),
@@ -441,6 +448,27 @@ pub fn enemy_tests() {
         out_enemy2,
         Enemy(..enemy, position: Vector(250.0, 250.0, 8.0)),
       )
+    }),
+    it("is_facing_player_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.is_facing_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(30.0, 0.0, 0.0))),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.is_facing_player_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(30.0, 30.0, 0.0))),
+        ))
+      expect.to_be_false(success)
+      expect.to_equal(out_enemy, enemy)
     }),
   ])
 }

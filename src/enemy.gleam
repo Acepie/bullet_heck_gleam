@@ -4,7 +4,6 @@ import dungeon.{type Dungeon}
 import gleam/bool
 import gleam/float
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam_community/maths/elementary
 import obstacle
@@ -321,6 +320,58 @@ pub fn move_in_air_behavior(inputs: BehaviorInput) -> BehaviorResult {
   )
 }
 
+// Simple behavior that checks if the enemy is looking at the player.
+pub fn is_facing_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(
+    entity: enemy,
+    additional_inputs: Inputs(_, _, player),
+  ) = inputs
+
+  let player2d = vector.vector_2d(player.position)
+  let enemy2d = vector.vector_2d(enemy.position)
+  // Find vector from enemy to player
+  let target = vector.subtract(player2d, enemy2d)
+  // Extend vector based on the projection from the enemies facing direction
+  let target =
+    vector.multiply(
+      target,
+      vector.dot(vector.from_angle2d(enemy.rotation), target)
+        /. vector.magnitude(target),
+    )
+  // Find point along vector from enemy to player
+  let target = vector.add(target, enemy2d)
+
+  behavior_tree.BehaviorResult(
+    vector.distance(target, player2d) <. player.player_size /. 2.0,
+    enemy,
+    AdditionalOutputs([]),
+  )
+}
+
+const bullet_wait_time = 200
+
+// Fires a bullet from the enemy
+pub fn fire_bullet_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+
+  let now = utils.now_in_milliseconds()
+  case enemy.last_bullet_fired + bullet_wait_time > now {
+    True -> behavior_tree.BehaviorResult(False, enemy, AdditionalOutputs([]))
+    False ->
+      behavior_tree.BehaviorResult(
+        True,
+        Enemy(..enemy, last_bullet_fired: now),
+        AdditionalOutputs([
+          bullet.spawn_bullet(
+            enemy.position,
+            vector.from_angle2d(enemy.rotation),
+            False,
+          ),
+        ]),
+      )
+  }
+}
+
 /// Represents an enemy to defeat.
 pub type Enemy {
   /// Represents an enemy to defeat.
@@ -343,6 +394,8 @@ pub type Enemy {
     last_path_updated: Int,
     /// Can the enemy currently see the player.
     spotted_player: Bool,
+    /// The last time the enemy fired a bullet.
+    last_bullet_fired: Int,
     /// The behavior that an enemy will follow on each tick.
     btree: BehaviorTree,
   )
@@ -379,6 +432,7 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
     path: [],
     last_path_updated: 0,
     spotted_player: False,
+    last_bullet_fired: 0,
     btree: behavior_tree.all(
       [
         // Look for player
@@ -399,6 +453,12 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
           sequence([in_air_behavior, move_in_air_behavior]),
           sequence([has_path_behavior, follow_path_behavior]),
           sequence([spotted_player_behavior, follow_player_behavior]),
+        ]),
+        // Fire bullets
+        sequence([
+          in_range_of_player_behavior,
+          is_facing_player_behavior,
+          fire_bullet_behavior,
         ]),
       ],
       default_output,

@@ -32,55 +32,55 @@ fn approximate_vector_equal(v1: Vector, v2: Vector) {
 
 pub fn vector_tests() {
   describe("vector", [
-    it("add_test", fn() {
+    it("add", fn() {
       expect.to_equal(
         vector.add(Vector(1.0, 2.0, 3.0), Vector(4.0, 5.0, 6.0)),
         Vector(5.0, 7.0, 9.0),
       )
     }),
-    it("subtract_test", fn() {
+    it("subtract", fn() {
       expect.to_equal(
         vector.subtract(Vector(1.0, 2.0, 3.0), Vector(4.0, 5.0, 6.0)),
         Vector(-3.0, -3.0, -3.0),
       )
     }),
-    it("dot_test", fn() {
+    it("dot", fn() {
       expect.to_equal(
         vector.dot(Vector(1.0, 2.0, 3.0), Vector(4.0, 5.0, 6.0)),
         32.0,
       )
     }),
-    it("cross_test", fn() {
+    it("cross", fn() {
       expect.to_equal(
         vector.cross(Vector(1.0, 2.0, 3.0), Vector(2.0, -1.0, 0.0)),
         Vector(3.0, 6.0, -5.0),
       )
     }),
-    it("multiply_test", fn() {
+    it("multiply", fn() {
       expect.to_equal(
         vector.multiply(Vector(1.0, 2.0, 3.0), 2.0),
         Vector(2.0, 4.0, 6.0),
       )
     }),
-    it("divide_test", fn() {
+    it("divide", fn() {
       expect.to_equal(
         vector.divide(Vector(2.0, 4.0, 6.0), 2.0),
         Vector(1.0, 2.0, 3.0),
       )
     }),
-    it("vector_mag_squared_test", fn() {
+    it("vector_mag_squared", fn() {
       expect.to_equal(vector.magnitude_squared(Vector(1.0, 2.0, 3.0)), 14.0)
     }),
-    it("vector_mag_test", fn() {
+    it("vector_mag", fn() {
       expect.to_equal(vector.magnitude(Vector(3.0, 4.0, 0.0)), 5.0)
     }),
-    it("normalize_test", fn() {
+    it("normalize", fn() {
       expect.to_equal(
         vector.normalize(Vector(3.0, 4.0, 0.0)),
         Vector(0.6, 0.8, 0.0),
       )
     }),
-    it("limit_test", fn() {
+    it("limit", fn() {
       expect.to_equal(
         vector.limit(Vector(3.0, 4.0, 0.0), 6.0),
         Vector(3.0, 4.0, 0.0),
@@ -90,13 +90,13 @@ pub fn vector_tests() {
         Vector(0.6, 0.8, 0.0),
       )
     }),
-    it("distance_test", fn() {
+    it("distance", fn() {
       expect.to_equal(
         vector.distance(Vector(1.0, 2.0, 3.0), Vector(4.0, 2.0, 7.0)),
         5.0,
       )
     }),
-    it("heading2d_test", fn() {
+    it("heading2d", fn() {
       expect.to_equal(
         vector.heading2d(Vector(0.0, 1.0, 0.0)),
         elementary.pi() /. 2.0,
@@ -108,13 +108,24 @@ pub fn vector_tests() {
       )
       expect.to_equal(vector.heading2d(Vector(-1.0, 0.0, 0.0)), elementary.pi())
     }),
-    it("rotate2d_test", fn() {
+    it("rotate2d", fn() {
       approximate_vector_equal(
         vector.rotate2d(Vector(0.0, 1.0, 0.0), elementary.pi()),
         Vector(0.0, -1.0, 0.0),
       )
       approximate_vector_equal(
         vector.rotate2d(Vector(1.0, 0.0, 0.0), elementary.pi() /. 2.0),
+        Vector(0.0, 1.0, 0.0),
+      )
+    }),
+    it("from_angle2d", fn() {
+      approximate_vector_equal(vector.from_angle2d(0.0), Vector(1.0, 0.0, 0.0))
+      approximate_vector_equal(
+        vector.from_angle2d(elementary.pi()),
+        Vector(-1.0, 0.0, 0.0),
+      )
+      approximate_vector_equal(
+        vector.from_angle2d(elementary.pi() /. 2.0),
         Vector(0.0, 1.0, 0.0),
       )
     }),
