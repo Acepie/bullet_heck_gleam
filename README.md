@@ -24,7 +24,7 @@ A [gleam](https://gleam.run/) [rewrite](https://github.com/Acepie/GameAIBulletHe
 - Enemy behaviors utilize behavior trees (patrolling until they spot the player, then chasing the player, and firing if within range)
 - The player can jump over pits and enemies, but not over obstacles
 - Pits instantly kill the player
-- After getting hit, the player and enemies are briefly invulnerable to avoid continuous damage
+- After getting hit, the player is briefly invulnerable to avoid continuous damage
 - If the player kills all enemies in a room, they will be spawned in the next randomly-generated room
 
 ## Development
