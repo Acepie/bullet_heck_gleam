@@ -4,6 +4,7 @@ import dungeon.{type Dungeon}
 import gleam/bool
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam_community/maths/elementary
 import obstacle
@@ -282,6 +283,44 @@ pub fn follow_player_behavior(inputs: BehaviorInput) -> BehaviorResult {
   behavior_tree.BehaviorResult(True, enemy, AdditionalOutputs([]))
 }
 
+// Simple behavior that checks if the enemy is in midair.
+pub fn in_air_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(entity: enemy, additional_inputs: _) = inputs
+
+  behavior_tree.BehaviorResult(
+    enemy.position.z >. 0.0,
+    enemy,
+    AdditionalOutputs([]),
+  )
+}
+
+// Behavior that moves the enemy while they are in midair.
+pub fn move_in_air_behavior(inputs: BehaviorInput) -> BehaviorResult {
+  let behavior_tree.BehaviorInput(
+    entity: enemy,
+    additional_inputs: Inputs(_, dungeon, _),
+  ) = inputs
+
+  let new_position = enemy.position |> vector.add(enemy.velocity)
+  let new_position = case
+    dungeon.can_move(dungeon, enemy.position, new_position)
+  {
+    True -> new_position
+    False ->
+      vector.Vector(
+        enemy.position.x,
+        enemy.position.y,
+        enemy.position.z +. enemy.velocity.z,
+      )
+  }
+
+  behavior_tree.BehaviorResult(
+    True,
+    Enemy(..enemy, position: new_position),
+    AdditionalOutputs([]),
+  )
+}
+
 /// Represents an enemy to defeat.
 pub type Enemy {
   /// Represents an enemy to defeat.
@@ -340,7 +379,6 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
     path: [],
     last_path_updated: 0,
     spotted_player: False,
-    // TODO: actually make a behavior
     btree: behavior_tree.all(
       [
         // Look for player
@@ -358,6 +396,7 @@ pub fn new_enemy(initial_position: Vector) -> Enemy {
         ]),
         // Move the enemy
         selector([
+          sequence([in_air_behavior, move_in_air_behavior]),
           sequence([has_path_behavior, follow_path_behavior]),
           sequence([spotted_player_behavior, follow_player_behavior]),
         ]),
@@ -450,8 +489,57 @@ fn move_enemy(
   }
 
   let target_velocity = dir |> vector.normalize |> vector.multiply(target_speed)
-  let acceleration =
-    vector.subtract(target_velocity, enemy.velocity)
+  let acceleration = vector.subtract(target_velocity, enemy.velocity)
+
+  // Go through pits and either avoid them, ignore them if too far, or jump over them
+  let #(acceleration, is_jumping) =
+    list.fold(pits, #(acceleration, False), fn(acc, p) {
+      let is_jumping = acc.1
+      let dir = vector.subtract(enemy.position, p.position)
+      let dist = vector.magnitude(dir)
+      case dist <. pit_avoid_radius && !is_jumping {
+        False -> acc
+        True -> {
+          // Check if jumping would go over the pit
+          let landing_position =
+            landing_position_if_jumped(enemy.position, enemy.velocity)
+          case
+            connection_crosses(
+              enemy.position,
+              landing_position,
+              p.position,
+              p.size /. 2.0,
+            )
+            // Don't have enemies jump if they already are in the pit
+            && vector.distance(landing_position, p.position) >. p.size /. 2.0
+          {
+            True -> {
+              #(
+                vector.Vector(0.0, 0.0, -1.0 *. enemy.velocity.z +. jump_power),
+                True,
+              )
+            }
+            False -> {
+              #(
+                avoid_thing_at_position(
+                  enemy,
+                  p.position,
+                  acc.0,
+                  pit_avoid_force,
+                  pit_avoid_radius,
+                ),
+                False,
+              )
+            }
+          }
+        }
+      }
+    })
+
+  let acceleration = {
+    use <- bool.guard(is_jumping, acceleration)
+
+    acceleration
     |> list.fold(
       obstacles,
       _,
@@ -465,7 +553,6 @@ fn move_enemy(
         )
       },
     )
-    // TODO: avoid or jump over pit
     |> list.fold(
       enemies,
       _,
@@ -511,10 +598,60 @@ fn move_enemy(
       },
     )
     |> vector.limit(max_acceleration)
+  }
 
   let velocity = vector.add(enemy.velocity, acceleration)
   #(Enemy(..enemy, velocity: velocity), vector.add(velocity, enemy.position))
 }
+
+const jump_power = 0.3
+
+// Computes where an enemy would land if they jumped at the current position and velocity
+fn landing_position_if_jumped(position: Vector, velocity: Vector) -> Vector {
+  let time_in_air = jump_power /. enemy_gravity_strength
+  vector.add(position, vector.multiply(velocity, time_in_air))
+}
+
+// Determines if the line from the start to the end crosses through a point with a given radius
+fn connection_crosses(
+  start: Vector,
+  end: Vector,
+  center: Vector,
+  radius: Float,
+) -> Bool {
+  let diff = vector.subtract(end, start)
+  // project center onto the line between start and end and get the parametric value for the point
+  let t = {
+    {
+      -1.0
+      *. diff.x
+      *. { start.x -. center.x }
+      -. diff.y
+      *. { start.y -. center.y }
+      -. diff.z
+      *. { start.z -. center.z }
+    }
+    /. vector.dot(diff, diff)
+  }
+
+  // clip the parametric point to 0-1 and see if the point is within range of the center
+  case t >. 1.0 || t <. 0.0 {
+    True -> {
+      let z =
+        vector.distance(vector.add(start, vector.multiply(diff, 0.0)), center)
+      let o =
+        vector.distance(vector.add(start, vector.multiply(diff, 1.0)), center)
+      z <. radius || o <. radius
+    }
+    False ->
+      vector.distance(vector.add(start, vector.multiply(diff, t)), center)
+      <. radius
+  }
+}
+
+const pit_avoid_force = 1000.0
+
+const pit_avoid_radius = 30.0
 
 const avoid_force = 200.0
 

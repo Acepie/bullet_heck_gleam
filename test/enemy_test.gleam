@@ -387,5 +387,60 @@ pub fn enemy_tests() {
         Vector(650.0, 150.0, 0.0),
       ])
     }),
+    it("in_air_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 0.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_air_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+        ))
+      expect.to_be_false(success)
+      expect.to_equal(out_enemy, enemy)
+
+      let enemy = enemy.new_enemy(Vector(0.0, 0.0, 1.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.in_air_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs([], dungeon, player.new_player(Vector(0.0, 0.0, 0.0))),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(out_enemy, enemy)
+    }),
+    it("move_in_air_behavior", fn() {
+      let enemy = enemy.new_enemy(Vector(250.0, 150.0, 10.0))
+      let enemy = Enemy(..enemy, velocity: Vector(0.0, 100.0, -1.0))
+
+      let behavior_tree.BehaviorResult(success, out_enemy, _) =
+        enemy.move_in_air_behavior(behavior_tree.BehaviorInput(
+          enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(150.0, 150.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(
+        out_enemy,
+        Enemy(..enemy, position: Vector(250.0, 250.0, 9.0)),
+      )
+
+      let behavior_tree.BehaviorResult(success, out_enemy2, _) =
+        enemy.move_in_air_behavior(behavior_tree.BehaviorInput(
+          out_enemy,
+          enemy.Inputs(
+            [],
+            dungeon,
+            player.new_player(Vector(150.0, 150.0, 0.0)),
+          ),
+        ))
+      expect.to_be_true(success)
+      expect.to_equal(
+        out_enemy2,
+        Enemy(..enemy, position: Vector(250.0, 250.0, 8.0)),
+      )
+    }),
   ])
 }

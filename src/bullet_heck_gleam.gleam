@@ -347,6 +347,7 @@ fn on_tick(state: WorldState) -> WorldState {
               e,
               enemy.Inputs(enemies, dungeon, player),
             ))
+          let enemy = enemy.apply_gravity(enemy)
 
           let bullets = list.append(new_bullets, bullets)
 
