@@ -3,3 +3,6 @@
 /build
 erl_crash.dump
 /dist/*.js
+/dist/*.map
+/node_modules
+/coverage

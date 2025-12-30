@@ -1,0 +1,19 @@
+{
+  "name": "bullet_heck_gleam",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "format": "gleam format",
+    "pretest": "rm -rf coverage && mkdir -p coverage && gleam build",
+    "build": "gleam build",
+    "test":"gleam test",
+    "test:coverage": "node --experimental-test-coverage --test-coverage-exclude='test/**/*' --test-coverage-include='src/**/*.gleam' --test-coverage-include='build/dev/javascript/bullet_heck_gleam/**/*.mjs' --test --enable-source-maps --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout './test/main_test.mjs'"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

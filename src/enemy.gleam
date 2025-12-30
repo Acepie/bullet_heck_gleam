@@ -5,7 +5,7 @@ import gleam/bool
 import gleam/float
 import gleam/int
 import gleam/list
-import gleam_community/maths/elementary
+import gleam_community/maths
 import obstacle
 import p5js_gleam.{type P5}
 import p5js_gleam/bindings as p5
@@ -508,7 +508,7 @@ const whisker_length = 20.0
 fn create_whisker_points(enemy: Enemy) -> List(Vector) {
   let whisker_dist =
     enemy.velocity |> vector.normalize |> vector.multiply(whisker_length)
-  let pi_div_4 = elementary.pi() /. 4.0
+  let pi_div_4 = maths.pi() /. 4.0
 
   [
     whisker_dist |> vector.rotate2d(pi_div_4) |> vector.add(enemy.position),
@@ -746,7 +746,7 @@ fn avoid_thing_at_position(
 
 // converts radian amount to be between -pi and pi
 fn clamp_radians(input_radians: Float) -> Float {
-  let pi = elementary.pi()
+  let pi = maths.pi()
   let input_radians = case input_radians <. -1.0 *. pi {
     True -> clamp_radians(input_radians +. pi *. 2.0)
     False -> input_radians
@@ -758,19 +758,19 @@ fn clamp_radians(input_radians: Float) -> Float {
 }
 
 fn target_rotation_range() -> Float {
-  elementary.pi() /. 30.0
+  maths.pi() /. 30.0
 }
 
 fn slow_rotation_range() -> Float {
-  elementary.pi() /. 15.0
+  maths.pi() /. 15.0
 }
 
 fn max_angular_speed() -> Float {
-  elementary.pi() /. 20.0
+  maths.pi() /. 20.0
 }
 
 fn max_angular_acceleration() -> Float {
-  elementary.pi() /. 40.0
+  maths.pi() /. 40.0
 }
 
 // Steers the enemy to face toward the target.
@@ -841,7 +841,7 @@ pub fn draw(p: P5, enemy: Enemy) {
   |> p5.line(
     enemy.position.x,
     enemy.position.y,
-    enemy.position.x +. elementary.cos(enemy.rotation) *. size_to_draw /. 2.0,
-    enemy.position.y +. elementary.sin(enemy.rotation) *. size_to_draw /. 2.0,
+    enemy.position.x +. maths.cos(enemy.rotation) *. size_to_draw /. 2.0,
+    enemy.position.y +. maths.sin(enemy.rotation) *. size_to_draw /. 2.0,
   )
 }

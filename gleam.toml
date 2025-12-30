@@ -2,6 +2,10 @@ name = "bullet_heck_gleam"
 version = "1.0.0"
 target = "javascript"
 
+[javascript]
+runtime = "node"
+source_maps = true
+
 # Fill out these fields if you intend to generate HTML documentation or publish
 # your project to the Hex package manager.
 #
@@ -15,11 +19,12 @@ target = "javascript"
 
 [dependencies]
 gleam_stdlib = ">= 0.36.0 and < 2.0.0"
-p5js_gleam = ">= 2.1.2 and < 3.0.0"
-prng = ">= 3.0.2 and < 4.0.0"
-gleam_community_maths = ">= 1.1.0 and < 2.0.0"
+p5js_gleam = ">= 3.0.0 and < 4.0.0"
+prng = ">= 4.0.0 and < 5.0.0"
+gleam_community_maths = ">= 2.0.0 and < 3.0.0"
 priorityq = ">= 0.1.0 and < 1.0.0"
+gleam_yielder = ">= 1.1.0 and < 2.0.0"
 
 [dev-dependencies]
-esgleam = ">= 0.6.0 and < 1.0.0"
-startest = ">= 0.2.1 and < 1.0.0"
+esgleam = ">= 1.0.0 and < 2.0.0"
+gleeunit = ">= 1.9.0 and < 2.0.0"

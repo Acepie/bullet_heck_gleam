@@ -1,12 +1,11 @@
 import dungeon
 import gleam/dict
 import gleam/int
-import gleam/iterator.{repeatedly, take}
 import gleam/list
+import gleam/yielder.{repeatedly, take}
+import gleeunit/should.{be_error, be_false, be_ok, be_true, equal}
 import pit
 import room
-import startest.{describe, it}
-import startest/expect
 import vector
 
 fn validate_room_is_traversable(d: dungeon.Dungeon) {
@@ -25,12 +24,9 @@ fn validate_room_is_traversable(d: dungeon.Dungeon) {
         True -> {
           let next_room_coords = dungeon.next_room_indices(column, row, dir)
           let next_room = dict.get(d.rooms, next_room_coords)
-          expect.to_be_ok(next_room)
+          be_ok(next_room)
           let assert Ok(next_room) = next_room
-          expect.to_be_true(room.is_navigable(
-            next_room,
-            room.inverse_direction(dir),
-          ))
+          be_true(room.is_navigable(next_room, room.inverse_direction(dir)))
           True
         }
         // Confirm the other room can't navigate to this room or is empty
@@ -41,10 +37,7 @@ fn validate_room_is_traversable(d: dungeon.Dungeon) {
           case next_room {
             Error(_) -> Nil
             Ok(next_room) -> {
-              expect.to_be_false(room.is_navigable(
-                next_room,
-                room.inverse_direction(dir),
-              ))
+              be_false(room.is_navigable(next_room, room.inverse_direction(dir)))
             }
           }
           False
@@ -53,7 +46,7 @@ fn validate_room_is_traversable(d: dungeon.Dungeon) {
     }
 
     // Check each room has at least 1 other navigable room
-    expect.to_be_true(
+    be_true(
       list.any(
         [
           test_direction(room.Left),
@@ -80,10 +73,10 @@ fn validate_pits(d: dungeon.Dungeon) {
     use pit1 <- list.each(pits)
     use pit2 <- list.each(pits)
 
-    expect.to_be_true(
+    be_true(
       pit1 == pit2 || vector.distance(pit1.position, pit2.position) >. 80.0,
     )
-    expect.to_be_true(
+    be_true(
       vector.distance(pit1.position, vector.Vector(350.0, 350.0, 0.0)) >. 80.0,
     )
   }
@@ -99,191 +92,177 @@ fn validate_obstacles(d: dungeon.Dungeon) {
     use pit <- list.each(pits)
     use obstacle <- list.each(obstacles)
 
-    expect.to_be_true(vector.distance(pit.position, obstacle.position) >. 80.0)
+    be_true(vector.distance(pit.position, obstacle.position) >. 80.0)
   }
 
   d
 }
 
-pub fn dungeon_tests() {
-  describe("dungeon", [
-    it("generate_dungeon", fn() {
-      {
-        use <- repeatedly
-        dungeon.generate_dungeon()
-        |> validate_room_is_traversable
-        |> validate_pits
-        |> validate_obstacles
-      }
-      |> take(30)
+pub fn generate_dungeon_test() {
+  let _ =
+    {
+      use <- repeatedly
+      dungeon.generate_dungeon()
+      |> validate_room_is_traversable
+      |> validate_pits
+      |> validate_obstacles
+    }
+    |> take(30)
+    |> yielder.run
 
-      Nil
-    }),
-    it("can_move", fn() {
-      let rooms =
-        dict.new()
-        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
-        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
-        |> dict.insert(
-          #(2, 1),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Bottom, True),
-        )
-        |> dict.insert(
-          #(2, 2),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Top, True),
-        )
-      let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
+  Nil
+}
 
-      // to out of bounds
-      expect.to_be_false(dungeon.can_move(
-        dungeon,
-        vector.Vector(0.0, 0.0, 0.0),
-        vector.Vector(10_000.0, 0.0, 0.0),
-      ))
-      // from and to not real rooms
-      expect.to_be_false(dungeon.can_move(
-        dungeon,
-        vector.Vector(0.0, 0.0, 0.0),
-        vector.Vector(0.0, 0.0, 0.0),
-      ))
-      // from and to blocked by wall
-      expect.to_be_false(dungeon.can_move(
-        dungeon,
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 1.5,
-          int.to_float(dungeon.room_size) *. 1.5,
-          0.0,
-        ),
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 1.5,
-          int.to_float(dungeon.room_size) *. 2.5,
-          0.0,
-        ),
-      ))
-      // from and to are navigable
-      expect.to_be_true(dungeon.can_move(
-        dungeon,
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 2.5,
-          int.to_float(dungeon.room_size) *. 1.5,
-          0.0,
-        ),
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 2.5,
-          int.to_float(dungeon.room_size) *. 2.5,
-          0.0,
-        ),
-      ))
+pub fn can_move_test() {
+  let rooms =
+    dict.new()
+    |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+    |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+    |> dict.insert(
+      #(2, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Bottom, True),
+    )
+    |> dict.insert(
+      #(2, 2),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Top, True),
+    )
+  let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
 
-      Nil
-    }),
-    it("get_reflecting_point", fn() {
-      let rooms =
-        dict.new()
-        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
-        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
-        |> dict.insert(
-          #(2, 1),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Bottom, True),
-        )
-        |> dict.insert(
-          #(2, 2),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Top, True),
-        )
-      let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
+  // to out of bounds
+  be_false(dungeon.can_move(
+    dungeon,
+    vector.Vector(0.0, 0.0, 0.0),
+    vector.Vector(10_000.0, 0.0, 0.0),
+  ))
+  // from and to not real rooms
+  be_false(dungeon.can_move(
+    dungeon,
+    vector.Vector(0.0, 0.0, 0.0),
+    vector.Vector(0.0, 0.0, 0.0),
+  ))
+  // from and to blocked by wall
+  be_false(dungeon.can_move(
+    dungeon,
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 1.5,
+      int.to_float(dungeon.room_size) *. 1.5,
+      0.0,
+    ),
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 1.5,
+      int.to_float(dungeon.room_size) *. 2.5,
+      0.0,
+    ),
+  ))
+  // from and to are navigable
+  be_true(dungeon.can_move(
+    dungeon,
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 2.5,
+      int.to_float(dungeon.room_size) *. 1.5,
+      0.0,
+    ),
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 2.5,
+      int.to_float(dungeon.room_size) *. 2.5,
+      0.0,
+    ),
+  ))
 
-      // to out of bounds
-      expect.to_be_error(dungeon.get_reflecting_point(
-        dungeon,
-        vector.Vector(0.0, 0.0, 0.0),
-        vector.Vector(10_000.0, 0.0, 0.0),
-      ))
-      // from and to not real rooms
-      expect.to_be_error(dungeon.get_reflecting_point(
-        dungeon,
-        vector.Vector(0.0, 0.0, 0.0),
-        vector.Vector(0.0, 0.0, 0.0),
-      ))
-      // from and to are navigable
-      expect.to_be_error(dungeon.get_reflecting_point(
-        dungeon,
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 2.5,
-          int.to_float(dungeon.room_size) *. 1.5,
-          0.0,
-        ),
-        vector.Vector(
-          int.to_float(dungeon.room_size) *. 2.5,
-          int.to_float(dungeon.room_size) *. 2.5,
-          0.0,
-        ),
-      ))
-      // from and to blocked by wall
-      expect.to_equal(
-        Ok(room.Top),
-        dungeon.get_reflecting_point(
-          dungeon,
-          vector.Vector(
-            int.to_float(dungeon.room_size) *. 1.5,
-            int.to_float(dungeon.room_size) *. 1.5,
-            0.0,
-          ),
-          vector.Vector(
-            int.to_float(dungeon.room_size) *. 1.5,
-            int.to_float(dungeon.room_size) *. 2.5,
-            0.0,
-          ),
-        ),
-      )
+  Nil
+}
 
-      Nil
-    }),
-    it("is_over_pit", fn() {
-      let rooms =
-        dict.new()
-        |> dict.insert(#(1, 1), room.initialize_unbounded_room())
-        |> dict.insert(#(1, 2), room.initialize_unbounded_room())
-        |> dict.insert(
-          #(2, 1),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Bottom, True),
-        )
-        |> dict.insert(
-          #(2, 2),
-          room.initialize_unbounded_room()
-            |> room.set_navigable(room.Top, True),
-        )
-      let dungeon =
-        dungeon.Dungeon(
-          rooms: rooms,
-          pits: [pit.Pit(position: vector.Vector(0.0, 0.0, 0.0), size: 30.0)],
-          obstacles: [],
-        )
+pub fn get_reflecting_point_test() {
+  let rooms =
+    dict.new()
+    |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+    |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+    |> dict.insert(
+      #(2, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Bottom, True),
+    )
+    |> dict.insert(
+      #(2, 2),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Top, True),
+    )
+  let dungeon = dungeon.Dungeon(rooms: rooms, pits: [], obstacles: [])
 
-      expect.to_be_true(dungeon.is_over_pit(
-        dungeon,
-        vector.Vector(0.0, 0.0, 0.0),
-      ))
-      expect.to_be_true(dungeon.is_over_pit(
-        dungeon,
-        vector.Vector(15.0, 0.0, 0.0),
-      ))
-      expect.to_be_true(dungeon.is_over_pit(
-        dungeon,
-        vector.Vector(20.0, 0.0, 0.0),
-      ))
-      expect.to_be_true(dungeon.is_over_pit(
-        dungeon,
-        vector.Vector(15.0, 15.0, 0.0),
-      ))
-      expect.to_be_false(dungeon.is_over_pit(
-        dungeon,
-        vector.Vector(35.0, 15.0, 0.0),
-      ))
-    }),
-  ])
+  // to out of bounds
+  be_error(dungeon.get_reflecting_point(
+    dungeon,
+    vector.Vector(0.0, 0.0, 0.0),
+    vector.Vector(10_000.0, 0.0, 0.0),
+  ))
+  // from and to not real rooms
+  be_error(dungeon.get_reflecting_point(
+    dungeon,
+    vector.Vector(0.0, 0.0, 0.0),
+    vector.Vector(0.0, 0.0, 0.0),
+  ))
+  // from and to are navigable
+  be_error(dungeon.get_reflecting_point(
+    dungeon,
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 2.5,
+      int.to_float(dungeon.room_size) *. 1.5,
+      0.0,
+    ),
+    vector.Vector(
+      int.to_float(dungeon.room_size) *. 2.5,
+      int.to_float(dungeon.room_size) *. 2.5,
+      0.0,
+    ),
+  ))
+  // from and to blocked by wall
+  equal(
+    Ok(room.Top),
+    dungeon.get_reflecting_point(
+      dungeon,
+      vector.Vector(
+        int.to_float(dungeon.room_size) *. 1.5,
+        int.to_float(dungeon.room_size) *. 1.5,
+        0.0,
+      ),
+      vector.Vector(
+        int.to_float(dungeon.room_size) *. 1.5,
+        int.to_float(dungeon.room_size) *. 2.5,
+        0.0,
+      ),
+    ),
+  )
+
+  Nil
+}
+
+pub fn is_over_pit_test() {
+  let rooms =
+    dict.new()
+    |> dict.insert(#(1, 1), room.initialize_unbounded_room())
+    |> dict.insert(#(1, 2), room.initialize_unbounded_room())
+    |> dict.insert(
+      #(2, 1),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Bottom, True),
+    )
+    |> dict.insert(
+      #(2, 2),
+      room.initialize_unbounded_room()
+        |> room.set_navigable(room.Top, True),
+    )
+  let dungeon =
+    dungeon.Dungeon(
+      rooms: rooms,
+      pits: [pit.Pit(position: vector.Vector(0.0, 0.0, 0.0), size: 30.0)],
+      obstacles: [],
+    )
+
+  be_true(dungeon.is_over_pit(dungeon, vector.Vector(0.0, 0.0, 0.0)))
+  be_true(dungeon.is_over_pit(dungeon, vector.Vector(15.0, 0.0, 0.0)))
+  be_true(dungeon.is_over_pit(dungeon, vector.Vector(20.0, 0.0, 0.0)))
+  be_true(dungeon.is_over_pit(dungeon, vector.Vector(15.0, 15.0, 0.0)))
+  be_false(dungeon.is_over_pit(dungeon, vector.Vector(35.0, 15.0, 0.0)))
 }

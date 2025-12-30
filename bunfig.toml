@@ -1,0 +1,23 @@
+sourcemap = "linked"
+preload = ["./dev/build_gleam.ts"]
+root = "src"
+
+[loader]
+".gleam" = "js"
+
+[test]
+preload = ["./dev/build_gleam.ts"]
+root = "test"
+# Coverage data is very incorrect with the bun test runner
+# Use the node test runner for coverage
+coverage = false
+coveragePathIgnorePatterns = [
+  "build/**",
+  "dev/**",
+  "test/**"
+]
+coverageReporter = ["text", "lcov"]
+coverageDir = "./coverage"
+# Bun's internal sourcemaps are conflicting with the gleam sourcemaps
+# Need to debug this later
+coverageIgnoreSourcemaps = true
