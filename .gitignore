@@ -2,7 +2,7 @@
 *.ez
 /build
 erl_crash.dump
-/dist/*.js
+/dist/bullet_heck_gleam.js
 /dist/*.map
 /node_modules
 /coverage
