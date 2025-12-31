@@ -34,7 +34,7 @@ jobs:
       - run: gleam deps download
       - run: bun install
       - run: bun pretest
-      - run: bun run test
+      - run: bun test:coverage
       - run: bun format --check src test
       - run: bun bundle
       - name: Setup Pages
