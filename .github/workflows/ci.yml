@@ -30,7 +30,7 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "26.0.2"
-          gleam-version: "1.2.1"
+          gleam-version: "1.14"
       - run: gleam deps download
       - run: bun pretest
       - run: bun test
