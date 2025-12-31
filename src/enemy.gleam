@@ -600,63 +600,41 @@ fn move_enemy(
     use <- bool.guard(is_jumping, acceleration)
 
     acceleration
-    |> list.fold(
-      obstacles,
-      _,
-      fn(acc, o) {
-        avoid_thing_at_position(
-          enemy,
-          o.position,
-          acc,
-          avoid_force,
-          avoid_radius,
-        )
-      },
-    )
-    |> list.fold(
-      enemies,
-      _,
-      fn(acc, e) {
-        // Assume if position is same that they are the same enemy
-        case e.position == enemy.position {
-          True -> acc
-          False ->
-            avoid_thing_at_position(
-              enemy,
-              e.position,
-              acc,
-              cluster_force,
-              cluster_radius,
-            )
-        }
-      },
-    )
+    |> list.fold(obstacles, _, fn(acc, o) {
+      avoid_thing_at_position(enemy, o.position, acc, avoid_force, avoid_radius)
+    })
+    |> list.fold(enemies, _, fn(acc, e) {
+      // Assume if position is same that they are the same enemy
+      case e.position == enemy.position {
+        True -> acc
+        False ->
+          avoid_thing_at_position(
+            enemy,
+            e.position,
+            acc,
+            cluster_force,
+            cluster_radius,
+          )
+      }
+    })
     |> vector.limit(max_acceleration)
-    |> list.fold(
-      whisker_points,
-      _,
-      fn(acc, w) {
-        let add = case w {
-          room.Left -> vector.Vector(-1.0 *. wall_avoid_force, 0.0, 0.0)
-          room.Right -> vector.Vector(wall_avoid_force, 0.0, 0.0)
-          room.Top -> vector.Vector(0.0, -1.0 *. wall_avoid_force, 0.0)
-          room.Bottom -> vector.Vector(0.0, wall_avoid_force, 0.0)
-          room.TopLeft ->
-            vector.Vector(
-              -1.0 *. wall_avoid_force,
-              -1.0 *. wall_avoid_force,
-              0.0,
-            )
-          room.TopRight ->
-            vector.Vector(wall_avoid_force, -1.0 *. wall_avoid_force, 0.0)
-          room.BottomLeft ->
-            vector.Vector(-1.0 *. wall_avoid_force, wall_avoid_force, 0.0)
-          room.BottomRight ->
-            vector.Vector(wall_avoid_force, wall_avoid_force, 0.0)
-        }
-        vector.add(add, acc)
-      },
-    )
+    |> list.fold(whisker_points, _, fn(acc, w) {
+      let add = case w {
+        room.Left -> vector.Vector(-1.0 *. wall_avoid_force, 0.0, 0.0)
+        room.Right -> vector.Vector(wall_avoid_force, 0.0, 0.0)
+        room.Top -> vector.Vector(0.0, -1.0 *. wall_avoid_force, 0.0)
+        room.Bottom -> vector.Vector(0.0, wall_avoid_force, 0.0)
+        room.TopLeft ->
+          vector.Vector(-1.0 *. wall_avoid_force, -1.0 *. wall_avoid_force, 0.0)
+        room.TopRight ->
+          vector.Vector(wall_avoid_force, -1.0 *. wall_avoid_force, 0.0)
+        room.BottomLeft ->
+          vector.Vector(-1.0 *. wall_avoid_force, wall_avoid_force, 0.0)
+        room.BottomRight ->
+          vector.Vector(wall_avoid_force, wall_avoid_force, 0.0)
+      }
+      vector.add(add, acc)
+    })
     |> vector.limit(max_acceleration)
   }
 
@@ -800,8 +778,7 @@ fn steer_enemy(enemy: Enemy, target: vector.Vector) -> Enemy {
     target_rotation_velocity -. enemy.rotational_velocity
   let rotational_acc_mag = float.absolute_value(rotational_acceleration)
   let rotational_acceleration = case
-    rotational_acc_mag
-    >. max_angular_acceleration()
+    rotational_acc_mag >. max_angular_acceleration()
   {
     True ->
       rotational_acceleration

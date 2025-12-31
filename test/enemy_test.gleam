@@ -448,7 +448,11 @@ pub fn move_in_air_behavior_test() {
   let behavior_tree.BehaviorResult(success, out_enemy2, _) =
     enemy.move_in_air_behavior(behavior_tree.BehaviorInput(
       out_enemy,
-      enemy.Inputs([], mock_dungeon(), player.new_player(Vector(150.0, 150.0, 0.0))),
+      enemy.Inputs(
+        [],
+        mock_dungeon(),
+        player.new_player(Vector(150.0, 150.0, 0.0)),
+      ),
     ))
   be_true(success)
   equal(out_enemy2, Enemy(..enemy, position: Vector(250.0, 250.0, 8.0)))
@@ -460,7 +464,11 @@ pub fn is_facing_player_behavior_test() {
   let behavior_tree.BehaviorResult(success, out_enemy, _) =
     enemy.is_facing_player_behavior(behavior_tree.BehaviorInput(
       enemy,
-      enemy.Inputs([], mock_dungeon(), player.new_player(Vector(30.0, 0.0, 0.0))),
+      enemy.Inputs(
+        [],
+        mock_dungeon(),
+        player.new_player(Vector(30.0, 0.0, 0.0)),
+      ),
     ))
   be_true(success)
   equal(out_enemy, enemy)
@@ -470,7 +478,11 @@ pub fn is_facing_player_behavior_test() {
   let behavior_tree.BehaviorResult(success, out_enemy, _) =
     enemy.is_facing_player_behavior(behavior_tree.BehaviorInput(
       enemy,
-      enemy.Inputs([], mock_dungeon(), player.new_player(Vector(30.0, 30.0, 0.0))),
+      enemy.Inputs(
+        [],
+        mock_dungeon(),
+        player.new_player(Vector(30.0, 30.0, 0.0)),
+      ),
     ))
   be_false(success)
   equal(out_enemy, enemy)

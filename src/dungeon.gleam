@@ -2,10 +2,10 @@ import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
-import gleam/yielder
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/yielder
 import obstacle.{type Obstacle}
 import p5js_gleam.{type P5}
 import pit.{type Pit}
