@@ -32,6 +32,7 @@ jobs:
           otp-version: false
           gleam-version: "1.14"
       - run: gleam deps download
+      - run: bun install
       - run: bun pretest
       - run: bun test
       - run: bun format --check src test
