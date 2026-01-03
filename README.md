@@ -29,22 +29,9 @@ A [gleam](https://gleam.run/) [rewrite](https://github.com/Acepie/GameAIBulletHe
 
 ## Development
 
-This project is using [esgleam](https://hexdocs.pm/esgleam/) for bundling the project into a web page.
+This project is using [vite](https://vite.dev/) for bundling the project into a web page.
 
 ```sh
-gleam run -m esgleam/bundle
-```
-
-This works really nicely with [watchexec](https://github.com/watchexec/watchexec) for local dev
-
-Terminal 1:
-
-```sh
-watchexec -e gleam gleam run -m esgleam/bundle
-```
-
-Terminal 2:
-
-```sh
-gleam run -m esgleam/serve
+npm install
+npm run dev
 ```
