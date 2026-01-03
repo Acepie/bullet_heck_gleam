@@ -3,6 +3,6 @@
 /build
 erl_crash.dump
 /dist/bullet_heck_gleam.js
-/dist/*.map
+/dist/assets
 /node_modules
 /coverage
