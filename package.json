@@ -6,13 +6,13 @@
   "scripts": {
     "format": "gleam format",
     "pretest": "rm -rf coverage && mkdir -p coverage && gleam build",
-    "build": "gleam build",
+    "build": "gleam build && vite build",
     "test": "gleam test",
     "test:coverage": "node --experimental-test-coverage --test-coverage-exclude='test/**/*' --test-coverage-include='src/**/*.gleam' --test-coverage-include='build/dev/javascript/bullet_heck_gleam/**/*.mjs' --test --enable-source-maps --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout './test/main_test.mjs'",
-    "bundle": "gleam build && esbuild ./build/dev/javascript/bullet_heck_gleam/bullet_heck_gleam.mjs --outdir=dist --sourcemap --bundle --format=esm",
-    "dev": "bun bundle && bun ./index.ts"
+    "dev": "gleam build && vite"
   },
   "devDependencies": {
-    "esbuild": "^0.27.2"
+    "esbuild": "^0.27.2",
+    "rolldown-vite": "^7.3.0"
   }
 }
