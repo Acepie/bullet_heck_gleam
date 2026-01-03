@@ -1,5 +1,5 @@
 import gleam/float
-import gleam_community/maths/elementary
+import gleam_community/maths
 
 /// Represents a 3D Vector.
 pub type Vector {
@@ -78,9 +78,9 @@ pub fn vector_2d(v: Vector) -> Vector {
 
 /// Computes the heading in radians of a vector.
 pub fn heading2d(v: Vector) -> Float {
-  let res = elementary.atan2(v.y, v.x)
+  let res = maths.atan2(v.y, v.x)
   case res {
-    r if r <. 0.0 -> r +. 2.0 *. elementary.pi()
+    r if r <. 0.0 -> r +. 2.0 *. maths.pi()
     _ -> res
   }
 }
@@ -89,7 +89,7 @@ pub fn heading2d(v: Vector) -> Float {
 pub fn rotate2d(v: Vector, rotation: Float) -> Vector {
   let heading = heading2d(v) +. rotation
   let mag = magnitude(vector_2d(v))
-  Vector(elementary.cos(heading) *. mag, elementary.sin(heading) *. mag, v.z)
+  Vector(maths.cos(heading) *. mag, maths.sin(heading) *. mag, v.z)
 }
 
 /// Create a vector around the z axis by the given amount in radians.

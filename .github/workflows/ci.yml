@@ -24,16 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'latest'
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "26.0.2"
-          gleam-version: "1.2.1"
-          rebar3-version: "3"
-          # elixir-version: "1.15.4"
+          otp-version: false
+          gleam-version: "1.14"
       - run: gleam deps download
-      - run: gleam test
-      - run: gleam format --check src test
-      - run: gleam run -m esgleam/bundle
+      - run: npm install
+      - run: npm run pretest
+      - run: npm run test:coverage
+      - run: npm run format --check src test
+      - run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

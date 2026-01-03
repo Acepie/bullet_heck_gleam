@@ -2,10 +2,10 @@ import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
-import gleam/iterator
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/yielder
 import obstacle.{type Obstacle}
 import p5js_gleam.{type P5}
 import pit.{type Pit}
@@ -379,8 +379,8 @@ pub fn draw(p: P5, dungeon: Dungeon) {
   // Draw rooms
   {
     // rendering with shadows depends on order so we are using ranges
-    use col <- iterator.each(iterator.range(0, dungeon_size))
-    use row <- iterator.each(iterator.range(0, dungeon_size))
+    use col <- yielder.each(yielder.range(0, dungeon_size))
+    use row <- yielder.each(yielder.range(0, dungeon_size))
     use r <- result.map(dict.get(dungeon.rooms, #(col, row)))
 
     room.draw(p, r, col, row, room_size)
