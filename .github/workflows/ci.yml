@@ -24,18 +24,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 'latest'
+      - uses: oven-sh/setup-bun@v2
       - uses: erlef/setup-beam@v1
         with:
           otp-version: false
           gleam-version: "1.14"
       - run: gleam deps download
-      - run: npm install
-      - run: npm run test:coverage
-      - run: npm run format --check src test
-      - run: npm run build
+      - run: bun install
+      - run: bun run test:coverage
+      - run: bun run format --check src test
+      - run: bun run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
