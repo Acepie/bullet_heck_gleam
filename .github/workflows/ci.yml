@@ -33,7 +33,6 @@ jobs:
           gleam-version: "1.14"
       - run: gleam deps download
       - run: npm install
-      - run: npm run pretest
       - run: npm run test:coverage
       - run: npm run format --check src test
       - run: npm run build

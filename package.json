@@ -5,14 +5,17 @@
   "private": true,
   "scripts": {
     "format": "gleam format",
-    "pretest": "rm -rf coverage && mkdir -p coverage && gleam build",
-    "build": "gleam build && vite build",
+    "build": "vite build",
     "test": "gleam test",
-    "test:coverage": "node --experimental-test-coverage --test-coverage-exclude='test/**/*' --test-coverage-include='src/**/*.gleam' --test-coverage-include='build/dev/javascript/bullet_heck_gleam/**/*.mjs' --test --enable-source-maps --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout './test/main_test.mjs'",
-    "dev": "gleam build && vite"
+    "test:coverage": "vitest run --coverage",
+    "dev": "vite"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.16",
     "esbuild": "^0.27.2",
-    "rolldown-vite": "^7.3.0"
+    "rolldown-vite": "^7.3.0",
+    "toml": "^3.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }

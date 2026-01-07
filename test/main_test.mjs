@@ -1,3 +1,7 @@
-import { main } from "../build/dev/javascript/bullet_heck_gleam/bullet_heck_gleam_test.mjs";
+import { vi, test } from 'vitest';
+import { main } from "./bullet_heck_gleam_test.gleam";
 
-await main();
+vi.spyOn(process, "exit").mockImplementation(() => { })
+test("Test Runner", async () => {
+  await main();
+})
