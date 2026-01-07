@@ -1,5 +1,6 @@
 import * as childProcess from "node:child_process"
 import * as fs from "node:fs/promises"
+import { existsSync } from "node:fs"
 import * as path from "node:path"
 import * as toml from "toml"
 import * as vite from "vite"
@@ -70,7 +71,7 @@ export async function plugin() {
       if (gleamConfig?.javascript?.source_maps) {
         const jsMap = js.replace(".mjs", ".mjs.map")
         const jsMapFile = [".", "build", "dev", "javascript", jsMap].join(path.sep)
-        if (await fs.exists(jsMapFile)) {
+        if (existsSync(jsMapFile)) {
           const map = await fs.readFile(jsMapFile, { encoding: "utf8" })
           return { code: file, map }
         }
